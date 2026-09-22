@@ -1,0 +1,58 @@
+# ==========================================
+# DEPENDÊNCIAS E LOGS
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+# ==========================================
+# VARIÁVEIS DE AMBIENTE (DADOS SENSÍVEIS)
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production
+.env*.local
+
+# ==========================================
+# DUMPA/EXPORTS LOCAIS DE BANCO DE DADOS
+# ==========================================
+*.sqlite
+*.db
+*.sql.gz
+dumps/
+
+# ==========================================
+# EDITORES E SISTEMA OPERACIONAL
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Configurações de IDEs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==========================================
+# COBERTURA DE TESTES E BUILD
+# ==========================================
+coverage/
+dist/
+build/
+.clinic/
