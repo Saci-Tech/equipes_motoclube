@@ -1,0 +1,230 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/equipes/ativas": {
+      "get": {
+        "summary": "/api/equipes/ativas",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/equipes": {
+      "post": {
+        "summary": "/api/equipes",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/integrantes/perfil/{id}": {
+      "get": {
+        "summary": "/api/integrantes/perfil/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/integrantes": {
+      "post": {
+        "summary": "/api/integrantes",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/integrantes/{id}": {
+      "put": {
+        "summary": "/api/integrantes/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/equipamentos/categorias": {
+      "get": {
+        "summary": "/api/equipamentos/categorias",
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/equipamentos/categorias",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/equipamentos": {
+      "get": {
+        "summary": "/api/equipamentos",
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/equipamentos",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/eventos": {
+      "get": {
+        "summary": "/api/eventos",
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/eventos",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/presencas": {
+      "get": {
+        "summary": "/api/presencas",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sucesso": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "total": {
+                      "type": "number",
+                      "example": 50
+                    },
+                    "dados": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "id_evento": {
+                            "type": "number"
+                          },
+                          "nome_evento": {
+                            "type": "string"
+                          },
+                          "id_integrante": {
+                            "type": "number"
+                          },
+                          "nome_colete": {
+                            "type": "string"
+                          },
+                          "presente": {
+                            "type": "number"
+                          },
+                          "justificativa_falta": {
+                            "nullable": true
+                          },
+                          "justificativa_aceita": {
+                            "type": "number"
+                          },
+                          "data_criacao": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "id_evento",
+                          "nome_evento",
+                          "id_integrante",
+                          "nome_colete",
+                          "presente",
+                          "justificativa_falta",
+                          "justificativa_aceita",
+                          "data_criacao"
+                        ]
+                      },
+                      "example": [
+                        {
+                          "id": 156,
+                          "id_evento": 11,
+                          "nome_evento": "CONFRATERNIZAÇÃO CMD XIV",
+                          "id_integrante": 22,
+                          "nome_colete": "CARVALHO",
+                          "presente": 1,
+                          "justificativa_falta": null,
+                          "justificativa_aceita": 0,
+                          "data_criacao": "31/08/2026 22:46:09"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": []
+      }
+    },
+    "/api/presencas/eventos/{id}/gerar-qr": {
+      "post": {
+        "summary": "/api/presencas/eventos/{id}/gerar-qr",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/presencas/validar": {
+      "post": {
+        "summary": "/api/presencas/validar",
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/presencas/eventos/{id}": {
+      "get": {
+        "summary": "/api/presencas/eventos/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    }
+  },
+  "tags": [],
+  "info": {
+    "title": "api-clube",
+    "version": "1.0.0",
+    "description": "Specification JSONs: [v2](/api-spec/v2), [v3](/api-spec/v3)."
+  }
+}

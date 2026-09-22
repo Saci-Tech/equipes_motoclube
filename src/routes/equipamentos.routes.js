@@ -11,6 +11,16 @@ const db = require('../config/database');
  * @route   GET /api/equipamentos/categorias
  * @desc    Lista todas as categorias de equipamentos
  */
+/**
+ * @openapi
+ * /api/equipamentos/categorias:
+ *   get:
+ *     summary: Retrieve a list of users
+ *     description: Returns a list of all registered users.
+ *     responses:
+ *       200:
+ *         description: A successful response.
+ */
 router.get('/categorias', async (req, res) => {
     try {
         const [rows] = await db.query(

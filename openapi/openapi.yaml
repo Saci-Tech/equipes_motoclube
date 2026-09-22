@@ -1,0 +1,19 @@
+openapi: 3.0.0
+info:
+    title: 'API Clube'
+    version: 1.0.0
+    description: 'Automatically generated API documentation'
+servers:
+    -
+        url: 'http://localhost:3000'
+        description: 'Development server'
+paths:
+    /api/equipamentos/categorias:
+        get:
+            summary: 'Retrieve a list of users'
+            description: 'Returns a list of all registered users.'
+            responses:
+                '200':
+                    description: 'A successful response.'
+components: {}
+tags: []
