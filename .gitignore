@@ -38,6 +38,7 @@ dumps/
 .Trashes
 ehthumbs.db
 Thumbs.db
+**.zip
 
 # Configurações de IDEs
 .vscode/*
