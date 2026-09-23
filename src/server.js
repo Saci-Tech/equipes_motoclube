@@ -5,11 +5,13 @@ const fs = require('fs');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
+/*
 const equipesRoutes = require('./routes/equipes.routes');
 const integrantesRoutes = require('./routes/integrantes.routes');
 const equipamentosRoutes = require('./routes/equipamentos.routes');
 const eventosRoutes = require('./routes/eventos.routes');
 const presencasRoutes = require('./routes/presencas.routes');
+*/
 
 const app = express();
 
@@ -28,26 +30,28 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json());
 
 // Registros dos roteadores com seus prefixos
-app.use('/api/equipes', equipesRoutes);
+/*app.use('/api/equipes', equipesRoutes);
 app.use('/api/integrantes', integrantesRoutes);
 app.use('/api/equipamentos', equipamentosRoutes);
 app.use('/api/eventos', eventosRoutes);
 app.use('/api/presencas', presencasRoutes);
-
+*/
 // Inicia o servidor HTTP apenas se NÃO estiver em ambiente de teste
 if (process.env.NODE_ENV !== 'test') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         // Endpoints de tabelas
         console.clear();
+        console.log(`=============================================================`);
         console.log(`Servidor rodando na porta ${PORT}`);
         console.log(`Equipes: http://localhost:${PORT}/api/equipes/ativas`);
         console.log(`Equipamentos: http://localhost:${PORT}/api/equipamentos`);
         console.log(`Eventos: http://localhost:${PORT}/api/eventos`);
         console.log(`Presenças: http://localhost:${PORT}/api/presencas`);
-
+        console.log(`=============================================================`);
         // Endpoint do Swagger
         console.log(`Docs: http://localhost:${PORT}/api-docs`);
+        console.log(`=============================================================`);
     });
 }
 

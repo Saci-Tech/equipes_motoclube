@@ -30,8 +30,7 @@
     "collectCoverageFrom": [
       "src/**/*.js",         
       "!src/server.js",  
-      "!src/config/database.js",
-      "!src/routes/*.js"
+      "!src/config/database.js"
     ],
     "coveragePathIgnorePatterns": [
       "/node_modules/",
