@@ -24,8 +24,26 @@ const apiPayloadMock = {
     description: 'Equipe principal de competição'
 };
 
+const deserializedTeamMock = {
+    id: 1,
+    ...apiPayloadMock
+};
+
+const deserializedTeamListMock = [
+    deserializedTeamMock,
+    {
+        id: 2,
+        name: 'Equipe Beta',
+        category: 'JUNIOR',
+        status: 'ATIVO',
+        description: 'Equipe de acesso'
+    }
+];
+
 module.exports = {
     dbRowMock,
     dbRowListMock,
-    apiPayloadMock
+    apiPayloadMock,
+    deserializedTeamMock,
+    deserializedTeamListMock
 };

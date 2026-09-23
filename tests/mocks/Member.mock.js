@@ -36,8 +36,30 @@ const apiPayloadMock = {
     qrKey: 'UUID-QR-123'
 };
 
+const deserializedMemberMock = {
+    id: 1,
+    ...apiPayloadMock
+};
+
+const deserializedMemberListMock = [
+    deserializedMemberMock,
+    {
+        id: 2,
+        fullName: 'Ana Souza',
+        shirtName: 'Souza',
+        email: 'ana@clube.com',
+        phone: '11988887777',
+        cpf: '98765432100',
+        status: 'ATIVO',
+        teamId: 10,
+        qrKey: 'UUID-QR-456'
+    }
+];
+
 module.exports = {
     dbRowMock,
     dbRowListMock,
-    apiPayloadMock
+    apiPayloadMock,
+    deserializedMemberMock,
+    deserializedMemberListMock
 };

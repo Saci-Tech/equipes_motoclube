@@ -38,11 +38,14 @@ app.use('/api/presencas', presencasRoutes);
 if (process.env.NODE_ENV !== 'test') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
+        // Endpoints de tabelas
         console.log(`Servidor rodando na porta ${PORT}`);
         console.log(`Equipes: http://localhost:${PORT}/api/equipes/ativas`);
         console.log(`Equipamentos: http://localhost:${PORT}/api/equipamentos`);
         console.log(`Eventos: http://localhost:${PORT}/api/eventos`);
         console.log(`Presenças: http://localhost:${PORT}/api/presencas`);
+
+        // Endpoint do Swagger
         console.log(`Docs: http://localhost:${PORT}/api-docs`);
     });
 }
