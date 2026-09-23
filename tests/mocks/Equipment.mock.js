@@ -1,34 +1,53 @@
 const dbRowMock = {
     id: 1,
-    nome: 'Rádio HT Baofeng',
+    nome: 'Rádio HT Motorola',
+    numero_serie: 'HT123456',
     categoria: 'COMUNICACAO',
-    numero_serie: 'HT-998822',
     status: 'DISPONIVEL',
-    observacoes: 'Bateria nova, acompanha carregador'
+    observacoes: 'Em perfeito estado'
 };
 
 const dbRowListMock = [
     dbRowMock,
     {
         id: 2,
-        nome: 'Kit Primeiros Socorros',
-        categoria: 'SAUDE',
-        numero_serie: 'MED-001',
+        nome: 'Colete Tático',
+        numero_serie: 'CT789012',
+        categoria: 'PROTECAO',
         status: 'EM_USO',
-        observacoes: 'Mala amarela de resgate'
+        observacoes: 'Tamanho G'
     }
 ];
 
 const apiPayloadMock = {
-    name: 'Rádio HT Baofeng',
+    name: 'Rádio HT Motorola',
+    serialNumber: 'HT123456',
     category: 'COMUNICACAO',
-    serialNumber: 'HT-998822',
     status: 'DISPONIVEL',
-    notes: 'Bateria nova, acompanha carregador'
+    notes: 'Em perfeito estado'
 };
+
+const deserializedEquipmentMock = {
+    id: 1,
+    ...apiPayloadMock
+};
+
+const deserializedEquipmentListMock = [
+    deserializedEquipmentMock,
+    {
+        id: 2,
+        name: 'Colete Tático',
+        serialNumber: 'CT789012',
+        category: 'PROTECAO',
+        status: 'EM_USO',
+        notes: 'Tamanho G'
+    }
+];
 
 module.exports = {
     dbRowMock,
     dbRowListMock,
-    apiPayloadMock
+    apiPayloadMock,
+    deserializedEquipmentMock,
+    deserializedEquipmentListMock
 };

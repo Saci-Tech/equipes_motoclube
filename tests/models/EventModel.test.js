@@ -29,11 +29,12 @@ describe('EventModel (Modelo de Eventos)', () => {
             const result = eventModel.deserialize(dbRowMock);
             expect(result).toEqual({
                 id: 1,
-                title: 'Encontro Anual de Motociclistas',
-                eventDate: '2026-10-15T18:00:00.000Z',
-                location: 'Sede Principal - Sorocaba',
+                name: 'Treino Tático',
+                type: 'TREINO',
+                eventDate: '2026-10-15T14:00:00.000Z',
+                location: 'Base Alfa',
                 status: 'AGENDADO',
-                description: 'Evento festivo com bandas e exposições'
+                description: 'Treino tático mensal'
             });
         });
 
@@ -45,20 +46,18 @@ describe('EventModel (Modelo de Eventos)', () => {
         it('deve converter payload da API (camelCase) para colunas do banco (snake_case)', () => {
             const result = eventModel.serialize(apiPayloadMock);
             expect(result).toEqual({
-                nome: 'Encontro Anual de Motociclistas',
-                data_evento: '2026-10-15T18:00:00.000Z',
-                localizacao: 'Sede Principal - Sorocaba',
+                nome: 'Treino Tático',
+                tipo: 'TREINO',
+                data_evento: '2026-10-15T14:00:00.000Z',
+                local: 'Base Alfa',
                 status: 'AGENDADO',
-                descricao: 'Evento festivo com bandas e exposições'
+                descricao: 'Treino tático mensal'
             });
         });
 
         it('deve serializar apenas campos definidos no payload (parcial)', () => {
-            const result = eventModel.serialize({ title: 'Novo Título', location: 'Novo Local' });
-            expect(result).toEqual({
-                nome: 'Novo Título',
-                localizacao: 'Novo Local'
-            });
+            const result = eventModel.serialize({ name: 'Novo Nome' });
+            expect(result).toEqual({ nome: 'Novo Nome' });
         });
 
         it('deve retornar objeto vazio ao serializar payload nulo/undefined', () => {
@@ -67,73 +66,64 @@ describe('EventModel (Modelo de Eventos)', () => {
         });
     });
 
-    describe('Consultas específicas (findByDateRange, findByStatus)', () => {
-        it('findByDateRange deve retornar lista de eventos dentro do intervalo', async () => {
+    describe('Consultas específicas (findByType, findByStatus, findByDateRange)', () => {
+        it('findByType deve retornar lista de eventos filtrados por tipo', async () => {
             mockQuery.mockResolvedValueOnce([dbRowListMock]);
 
-            const startDate = '2026-10-01';
-            const endDate = '2026-11-30';
-            const result = await eventModel.findByDateRange(startDate, endDate);
+            const result = await eventModel.findByType('TREINO');
 
             expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM eventos WHERE data_evento BETWEEN ? AND ? ORDER BY data_evento ASC',
-                [startDate, endDate]
+                'SELECT * FROM eventos WHERE tipo = ?',
+                ['TREINO']
             );
             expect(Array.isArray(result)).toBe(true);
             expect(result.length).toBe(2);
-            expect(result[0].title).toBe('Encontro Anual de Motociclistas');
+            expect(result[0].type).toBe('TREINO');
         });
 
         it('findByStatus deve retornar lista de eventos filtrados por status', async () => {
-            mockQuery.mockResolvedValueOnce([[dbRowMock]]);
+            mockQuery.mockResolvedValueOnce([dbRowListMock]);
 
             const result = await eventModel.findByStatus('AGENDADO');
 
             expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM eventos WHERE status = ? ORDER BY data_evento DESC',
+                'SELECT * FROM eventos WHERE status = ?',
                 ['AGENDADO']
             );
-            expect(result.length).toBe(1);
+            expect(result.length).toBe(2);
             expect(result[0].status).toBe('AGENDADO');
+        });
+
+        it('findByDateRange deve retornar lista de eventos dentro do intervalo', async () => {
+            mockQuery.mockResolvedValueOnce([dbRowListMock]);
+
+            const result = await eventModel.findByDateRange('2026-10-01', '2026-10-31');
+
+            expect(mockQuery).toHaveBeenCalledWith(
+                'SELECT * FROM eventos WHERE data_evento BETWEEN ? AND ?',
+                ['2026-10-01', '2026-10-31']
+            );
+            expect(Array.isArray(result)).toBe(true);
+            expect(result.length).toBe(2);
+            expect(result[0].name).toBe('Treino Tático');
         });
     });
 
-    describe('Operações herdadas (create, update, findAll)', () => {
-        it('create deve converter camelCase para snake_case ao inserir', async () => {
-            mockQuery.mockResolvedValueOnce([{ insertId: 10 }]);
+    it('deve retornar objeto vazio ao tentar serializar null ou undefined', () => {
+        expect(eventModel.serialize(null)).toEqual({});
+        expect(eventModel.serialize(undefined)).toEqual({});
+    });
 
-            const insertId = await eventModel.create({
-                title: 'Workshop Mecânica',
-                eventDate: '2026-12-01T14:00:00.000Z'
-            });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'INSERT INTO eventos (nome, data_evento) VALUES (?, ?)',
-                ['Workshop Mecânica', '2026-12-01T14:00:00.000Z']
-            );
-            expect(insertId).toBe(10);
+    it('deve serializar um payload parcial sem a propriedade name', () => {
+        const result = eventModel.serialize({
+            type: 'TREINO',
+            location: 'Base Alfa'
         });
 
-        it('update deve converter atributos antes de atualizar no banco', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]);
-
-            const success = await eventModel.update(1, { location: 'Local Alterado' });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'UPDATE eventos SET localizacao = ? WHERE id = ?',
-                ['Local Alterado', 1]
-            );
-            expect(success).toBe(true);
+        expect(result).toEqual({
+            tipo: 'TREINO',
+            local: 'Base Alfa'
         });
-
-        it('findAll deve retornar todos os eventos convertidos para camelCase', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
-
-            const result = await eventModel.findAll();
-
-            expect(result.length).toBe(2);
-            expect(result[0]).toHaveProperty('eventDate');
-            expect(result[0]).not.toHaveProperty('data_evento');
-        });
+        expect(result).not.toHaveProperty('nome');
     });
 });

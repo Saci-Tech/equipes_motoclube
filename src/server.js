@@ -39,6 +39,7 @@ if (process.env.NODE_ENV !== 'test') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         // Endpoints de tabelas
+        console.clear();
         console.log(`Servidor rodando na porta ${PORT}`);
         console.log(`Equipes: http://localhost:${PORT}/api/equipes/ativas`);
         console.log(`Equipamentos: http://localhost:${PORT}/api/equipamentos`);

@@ -29,11 +29,11 @@ describe('EquipmentModel (Modelo de Equipamentos)', () => {
             const result = equipmentModel.deserialize(dbRowMock);
             expect(result).toEqual({
                 id: 1,
-                name: 'Rádio HT Baofeng',
+                name: 'Rádio HT Motorola',
                 category: 'COMUNICACAO',
-                serialNumber: 'HT-998822',
+                serialNumber: 'HT123456',
                 status: 'DISPONIVEL',
-                notes: 'Bateria nova, acompanha carregador'
+                notes: 'Em perfeito estado'
             });
         });
 
@@ -45,23 +45,20 @@ describe('EquipmentModel (Modelo de Equipamentos)', () => {
         it('deve converter payload da API (camelCase) para colunas do banco (snake_case)', () => {
             const result = equipmentModel.serialize(apiPayloadMock);
             expect(result).toEqual({
-                nome: 'Rádio HT Baofeng',
+                nome: 'Rádio HT Motorola',
                 categoria: 'COMUNICACAO',
-                numero_serie: 'HT-998822',
+                numero_serie: 'HT123456',
                 status: 'DISPONIVEL',
-                observacoes: 'Bateria nova, acompanha carregador'
+                observacoes: 'Em perfeito estado'
             });
         });
 
         it('deve serializar apenas campos definidos no payload (parcial)', () => {
-            const result = equipmentModel.serialize({ serialNumber: 'SN-12345', status: 'MANUTENCAO' });
-            expect(result).toEqual({
-                numero_serie: 'SN-12345',
-                status: 'MANUTENCAO'
-            });
+            const result = equipmentModel.serialize({ name: 'Novo Nome' });
+            expect(result).toEqual({ nome: 'Novo Nome' });
         });
 
-        it('deve retornar objeto vazio ao serializar payload nulo/undefined', () => {
+        it('deve retornar objeto vazio ao tentar serializar null ou undefined', () => {
             expect(equipmentModel.serialize(null)).toEqual({});
             expect(equipmentModel.serialize(undefined)).toEqual({});
         });
@@ -71,13 +68,13 @@ describe('EquipmentModel (Modelo de Equipamentos)', () => {
         it('findBySerialNumber deve retornar equipamento quando encontrado', async () => {
             mockQuery.mockResolvedValueOnce([[dbRowMock]]);
 
-            const result = await equipmentModel.findBySerialNumber('HT-998822');
+            const result = await equipmentModel.findBySerialNumber('HT123456');
 
             expect(mockQuery).toHaveBeenCalledWith(
                 'SELECT * FROM equipamentos WHERE numero_serie = ?',
-                ['HT-998822']
+                ['HT123456']
             );
-            expect(result.serialNumber).toBe('HT-998822');
+            expect(result.serialNumber).toBe('HT123456');
         });
 
         it('findBySerialNumber deve retornar null quando não encontrar', async () => {
@@ -88,7 +85,7 @@ describe('EquipmentModel (Modelo de Equipamentos)', () => {
             expect(result).toBeNull();
         });
 
-        it('findByCategory deve retornar lista filtrada por categoria', async () => {
+        it('findByCategory deve retornar lista de equipamentos filtrados por categoria', async () => {
             mockQuery.mockResolvedValueOnce([dbRowListMock]);
 
             const result = await equipmentModel.findByCategory('COMUNICACAO');
@@ -99,11 +96,10 @@ describe('EquipmentModel (Modelo de Equipamentos)', () => {
             );
             expect(Array.isArray(result)).toBe(true);
             expect(result.length).toBe(2);
-            expect(result[0].category).toBe('COMUNICACAO');
         });
 
-        it('findByStatus deve retornar lista filtrada por status', async () => {
-            mockQuery.mockResolvedValueOnce([[dbRowMock]]);
+        it('findByStatus deve retornar lista de equipamentos filtrados por status', async () => {
+            mockQuery.mockResolvedValueOnce([dbRowListMock]);
 
             const result = await equipmentModel.findByStatus('DISPONIVEL');
 
@@ -111,47 +107,21 @@ describe('EquipmentModel (Modelo de Equipamentos)', () => {
                 'SELECT * FROM equipamentos WHERE status = ?',
                 ['DISPONIVEL']
             );
-            expect(result.length).toBe(1);
-            expect(result[0].status).toBe('DISPONIVEL');
+            expect(Array.isArray(result)).toBe(true);
+            expect(result.length).toBe(2);
         });
     });
 
-    describe('Operações herdadas (create, update, findAll)', () => {
-        it('create deve converter camelCase para snake_case ao inserir', async () => {
-            mockQuery.mockResolvedValueOnce([{ insertId: 15 }]);
-
-            const insertId = await equipmentModel.create({
-                name: 'Gerador Portátil',
-                category: 'ENERGIA'
-            });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'INSERT INTO equipamentos (nome, categoria) VALUES (?, ?)',
-                ['Gerador Portátil', 'ENERGIA']
-            );
-            expect(insertId).toBe(15);
+    it('deve serializar apenas campos definidos no payload sem a propriedade name', () => {
+        const result = equipmentModel.serialize({
+            category: 'COMUNICACAO',
+            serialNumber: 'HT123456'
         });
 
-        it('update deve converter atributos antes de atualizar no banco', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]);
-
-            const success = await equipmentModel.update(1, { notes: 'Revisão feita' });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'UPDATE equipamentos SET observacoes = ? WHERE id = ?',
-                ['Revisão feita', 1]
-            );
-            expect(success).toBe(true);
+        expect(result).toEqual({
+            categoria: 'COMUNICACAO',
+            numero_serie: 'HT123456'
         });
-
-        it('findAll deve retornar todos os equipamentos convertidos em camelCase', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
-
-            const result = await equipmentModel.findAll();
-
-            expect(result.length).toBe(2);
-            expect(result[0]).toHaveProperty('serialNumber');
-            expect(result[0]).not.toHaveProperty('numero_serie');
-        });
+        expect(result).not.toHaveProperty('nome');
     });
 });

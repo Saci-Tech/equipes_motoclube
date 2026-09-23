@@ -1,140 +1,26 @@
+const BaseController = require('./BaseController');
 const memberModel = require('../models/MemberModel');
 
-class MemberController {
-    /**
-     * Lista todos os integrantes
-     */
-    async getAll(req, res) {
-        try {
-            const members = await memberModel.findAll();
-            return res.status(200).json({
-                success: true,
-                data: members
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
-        }
+class MemberController extends BaseController {
+    constructor() {
+        super(memberModel, 'Member');
+
+        this.getByCpf = this.getByCpf.bind(this);
+        this.getByQrKey = this.getByQrKey.bind(this);
+        this.getByTeamId = this.getByTeamId.bind(this);
     }
 
     /**
-     * Busca um integrante pelo ID
-     */
-    async getById(req, res) {
-        try {
-            const { id } = req.params;
-            const member = await memberModel.findById(id);
-
-            if (!member) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Member not found'
-                });
-            }
-
-            return res.status(200).json({
-                success: true,
-                data: member
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Cria um novo integrante
+     * Sobrescreve o create para adicionar validação de campos obrigatórios
      */
     async create(req, res) {
-        try {
-            const payload = req.body;
+        const payload = req.body;
 
-            if (!payload || !payload.fullName || !payload.cpf) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Missing required fields: fullName and cpf are required'
-                });
-            }
-
-            const insertId = await memberModel.create(payload);
-            const newMember = await memberModel.findById(insertId);
-
-            return res.status(201).json({
-                success: true,
-                data: newMember
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
+        if (!payload || !payload.fullName || !payload.cpf) {
+            return this.sendError(res, 'Missing required fields: fullName and cpf are required', 400);
         }
-    }
 
-    /**
-     * Atualiza um integrante existente
-     */
-    async update(req, res) {
-        try {
-            const { id } = req.params;
-            const payload = req.body;
-
-            const updated = await memberModel.update(id, payload);
-
-            if (!updated) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Member not found or no changes made'
-                });
-            }
-
-            const member = await memberModel.findById(id);
-            return res.status(200).json({
-                success: true,
-                data: member
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Remove um integrante
-     */
-    async delete(req, res) {
-        try {
-            const { id } = req.params;
-            const deleted = await memberModel.delete(id);
-
-            if (!deleted) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Member not found'
-                });
-            }
-
-            return res.status(200).json({
-                success: true,
-                message: 'Member deleted successfully'
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
-        }
+        return super.create(req, res);
     }
 
     /**
@@ -146,22 +32,12 @@ class MemberController {
             const member = await memberModel.findByCpf(cpf);
 
             if (!member) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Member not found'
-                });
+                return this.sendError(res, 'Member not found', 404);
             }
 
-            return res.status(200).json({
-                success: true,
-                data: member
-            });
+            return this.sendSuccess(res, member, 200);
         } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
+            return this.sendError(res, 'Internal server error', 500, error);
         }
     }
 
@@ -174,22 +50,12 @@ class MemberController {
             const member = await memberModel.findByQrKey(qrKey);
 
             if (!member) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Member not found'
-                });
+                return this.sendError(res, 'Member not found', 404);
             }
 
-            return res.status(200).json({
-                success: true,
-                data: member
-            });
+            return this.sendSuccess(res, member, 200);
         } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
+            return this.sendError(res, 'Internal server error', 500, error);
         }
     }
 
@@ -201,16 +67,9 @@ class MemberController {
             const { teamId } = req.params;
             const members = await memberModel.findByTeamId(teamId);
 
-            return res.status(200).json({
-                success: true,
-                data: members
-            });
+            return this.sendSuccess(res, members, 200);
         } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: error.message
-            });
+            return this.sendError(res, 'Internal server error', 500, error);
         }
     }
 }

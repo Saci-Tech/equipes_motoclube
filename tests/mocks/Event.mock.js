@@ -1,34 +1,57 @@
 const dbRowMock = {
     id: 1,
-    nome: 'Encontro Anual de Motociclistas',
-    data_evento: '2026-10-15T18:00:00.000Z',
-    localizacao: 'Sede Principal - Sorocaba',
+    nome: 'Treino Tático',
+    tipo: 'TREINO',
+    data_evento: '2026-10-15T14:00:00.000Z',
+    local: 'Base Alfa',
     status: 'AGENDADO',
-    descricao: 'Evento festivo com bandas e exposições'
+    descricao: 'Treino tático mensal'
 };
 
 const dbRowListMock = [
     dbRowMock,
     {
         id: 2,
-        nome: 'Passeio Beneficiente',
-        data_evento: '2026-11-20T09:00:00.000Z',
-        localizacao: 'Parque Campolim',
-        status: 'EM_BREVE',
-        descricao: 'Arrecadação de mantimentos'
+        nome: 'Operação Resgate',
+        tipo: 'OPERACAO',
+        data_evento: '2026-11-20T08:00:00.000Z',
+        local: 'Serra Verde',
+        status: 'AGENDADO',
+        descricao: 'Simulado de resgate'
     }
 ];
 
 const apiPayloadMock = {
-    title: 'Encontro Anual de Motociclistas',
-    eventDate: '2026-10-15T18:00:00.000Z',
-    location: 'Sede Principal - Sorocaba',
+    name: 'Treino Tático',
+    type: 'TREINO',
+    eventDate: '2026-10-15T14:00:00.000Z',
+    location: 'Base Alfa',
     status: 'AGENDADO',
-    description: 'Evento festivo com bandas e exposições'
+    description: 'Treino tático mensal'
 };
+
+const deserializedEventMock = {
+    id: 1,
+    ...apiPayloadMock
+};
+
+const deserializedEventListMock = [
+    deserializedEventMock,
+    {
+        id: 2,
+        name: 'Operação Resgate',
+        type: 'OPERACAO',
+        eventDate: '2026-11-20T08:00:00.000Z',
+        location: 'Serra Verde',
+        status: 'AGENDADO',
+        description: 'Simulado de resgate'
+    }
+];
 
 module.exports = {
     dbRowMock,
     dbRowListMock,
-    apiPayloadMock
+    apiPayloadMock,
+    deserializedEventMock,
+    deserializedEventListMock
 };
