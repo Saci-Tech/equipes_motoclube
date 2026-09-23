@@ -13,15 +13,17 @@ const presencasRoutes = require('./routes/presencas.routes');
 
 const app = express();
 
-expressOasGenerator.init(
-    app, 
-    function(spec) { return spec; }, 
-    path.join(__dirname, '../openapi/openapi.json'), 
-    0,                                                
-    'api-docs',                                       
-    undefined, undefined, undefined, true,
-    expressOasGenerator.RECREATE
-); 
+if (process.env.NODE_ENV !== 'test') {
+    expressOasGenerator.init(
+        app, 
+        function(spec) { return spec; }, 
+        path.join(__dirname, '../openapi/openapi.json'), 
+        0,                                                
+        'api-docs',                                       
+        undefined, undefined, undefined, true,
+        expressOasGenerator.RECREATE
+    ); 
+}
 
 app.use(express.json());
 
@@ -41,7 +43,7 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`Equipamentos: http://localhost:${PORT}/api/equipamentos`);
         console.log(`Eventos: http://localhost:${PORT}/api/eventos`);
         console.log(`Presenças: http://localhost:${PORT}/api/presencas`);
-        console.log(`Docs: http://localhost:${PORT}/api_docs`);
+        console.log(`Docs: http://localhost:${PORT}/api-docs`);
     });
 }
 

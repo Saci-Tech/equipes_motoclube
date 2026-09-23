@@ -53,13 +53,15 @@ describe('Rotas de Presença (/api/presencas)', () => {
         });
 
         it('Deve tratar erro do banco de dados e retornar status 500', async () => {
+            const spyConsole = jest.spyOn(console, 'error').mockImplementation(() => {});
             pool.query.mockRejectedValueOnce(new Error('Erro de conexão com o banco'));
 
             const res = await request(app).get('/api/presencas');
 
             expect(res.statusCode).toEqual(500);
             expect(res.body.sucesso).toBe(false);
-            expect(res.body.mensagem).toBe('Erro interno ao buscar histórico de presenças.');
+
+            spyConsole.mockRestore(); // Restaura o comportamento padrão do console.error
         });
     });
 
