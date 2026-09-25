@@ -1,47 +1,77 @@
 # 📂 Project Guidelines & Architecture - Equipes Motoclube
 
-Este documento estabelece as diretrizes de arquitetura, padrões de código, regras de negócio e fluxos de desenvolvimento para o projeto **Equipes Motoclube**.
+This document establishes the architecture guidelines, code standards, business rules, and development workflows for the **Equipes Motoclube** project.
 
 ---
 
-## 🏗️ 1. Princípios Arquiteturais Inegociáveis
+## 🛠️ 1. Tech Stack
 
-* **Herança Centralizada (`BaseController`):** 
-  * Todas as controllers do projeto devem obrigatoriamente estender a `BaseController`.
-  * A `BaseController` comanda a estrutura principal e as operações padrão de CRUD genérico.
-* **Isolamento de Responsabilidades (Sem Validações na API):** 
-  * **A camada de Controller NUNCA deve realizar validações de payloads** (ex: checar se campos obrigatórios estão vazios ou ausentes). 
-  * Toda e qualquer validação de dados de entrada é de responsabilidade exclusiva do **cliente** (front-end/consumidor da API). As controllers delegam diretamente para os modelos.
-* **Métodos Dedicados:** 
-  * As controllers filhas devem conter estritamente métodos específicos e customizados que extrapolam o CRUD básico fornecido pela base (ex: buscas por tipo, status, datas, títulos, etc.).
+Standardizing the environment and tools is essential to ensure reproducibility and code consistency across development, testing, and production environments.
 
----
-
-## 🏛️ 2. Padrões da Camada de Modelos (`BaseModel` e Filhas)
-
-* **Herança e Reutilização:**
-  * Toda Model específica estende a `BaseModel`, passando o nome da tabela e a chave primária correspondente no construtor (`super('tabela', 'id_primaria')`).
-  * A `BaseModel` centraliza as operações genéricas de persistência (CRUD) para evitar duplicação de código.
-* **Comportamento de Chave Primária Nula:**
-  * Caso o parâmetro de `primaryKey` seja nulo, métodos genéricos de listagem (como `getRecords()`) funcionam livremente para retornar todos os registros, enquanto métodos que dependem de um ID específico lançam um erro de validação interna.
-* **Flexibilidade de Payload (Suporte a Lote / Arrays):**
-  * Não importa se o payload recebido contém 1 (`object`) ou $N$ registros (`array`), **o formato de recebimento suporta e normaliza listas de registros/propriedades/parâmetros**.
-  * A camada de modelo processa a entrada de forma transparente, identificando se é um array ou objeto único e iterando para tratar operações em lote quando aplicável.
-* **Serialização e Desserialização:**
-  * Métodos de mapeamento (`serialize` e `deserialize`) atuam isolando o formato de persistência do banco de dados das entidades de negócio.
+* **Operating System (OS):**
+  * **Development and Testing:** Linux (or WSL2 on Windows with a Linux environment).
+  * **Production:** Linux Distribution (Ubuntu Server/Debian or equivalent).
+* **Programming Language:**
+  * JavaScript (Node.js).
+* **Database:**
+  * **MySQL** (Main persistence engine).
+* **Recommended IDEs:**
+  * Visual Studio Code (VS Code), WebStorm, or any text editor with support for Node.js linting and debugging plugins.
+* **Runtime Dependencies (Main):**
+  * Express (HTTP Framework).
+  * MySQL2 (Driver for database connection and manipulation).
+  * Other runtime libraries required for the API (as per `package.json`).
+* **Development Dependencies (Main):**
+  * Jest (Framework for unit tests, assertions, and coverage).
+  * Nodemon (Live-reload for development).
+  * Linting/Formatting tools (ESLint, Prettier, etc., as per `package.json`).
 
 ---
 
-## 📐 3. Padrões de Código e Assinaturas (Controllers)
+## 🏗️ 2. Non-Negotiable Architectural Principles
 
-* **Estrutura de Métodos Customizados:**
-  * Devem ser rigorosamente blindados com blocos `try/catch`.
-  * Devem utilizar os helpers herdados da base para padronizar as respostas (`this.sendSuccess` para sucesso e `this.sendError` para falhas/exceções).
-  * Exemplo padrão:
+* **Centralized Inheritance (`BaseController`):** 
+  * All project controllers must strictly extend the `BaseController`.
+  * The `BaseController` commands the main structure and generic CRUD operations.
+* **Responsibility Isolation (No Validations in the API):** 
+  * **The Controller layer must NEVER perform payload validations** (e.g., checking for missing or empty mandatory fields). 
+  * Any and all input data validation is the exclusive responsibility of the **client** (front-end/API consumer). Controllers delegate directly to the models.
+* **Dedicated Methods:** 
+  * Child controllers must strictly contain specific and customized methods that extrapolate the basic CRUD provided by the base (e.g., searching by type, status, dates, titles, etc.).
+* **Layer-Oriented Refactoring:**
+  * Refactoring, when necessary, must strictly follow the structural flow of layers and their respective test suites, in this exact order:
+    1. `Model` + `Mock` + `Test`
+    2. `Controller` + `Test`
+    3. `Router` + `Test`
+    4. `Server` + `Test`
+
+---
+
+## 🏛️ 3. Model Layer Standards (`BaseModel` and Children)
+
+* **Inheritance and Reusability:**
+  * Every specific Model extends the `BaseModel`, passing the table name and the corresponding primary key in the constructor (`super('table', 'primary_id')`).
+  * The `BaseModel` centralizes generic persistence operations (CRUD) to avoid code duplication.
+* **Null Primary Key Behavior:**
+  * If the `primaryKey` parameter is null, generic listing methods (like `getRecords()`) operate freely to return all records, while methods relying on a specific ID will throw an internal validation error.
+* **Payload Flexibility (Batch / Array Support):**
+  * Regardless of whether the received payload contains 1 (`object`) or $N$ records (`array`), **the reception format supports and normalizes lists of records/properties/parameters**.
+  * The model layer processes the input transparently, identifying whether it is an array or a single object and iterating to handle batch operations when applicable.
+* **Serialization and Deserialization:**
+  * Mapping methods (`serialize` and `deserialize`) act to isolate the database persistence format from the business entities.
+
+---
+
+## 📐 4. Code Standards and Signatures (Controllers)
+
+* **Custom Method Structure:**
+  * Must be strictly shielded with `try/catch` blocks.
+  * Must use the helpers inherited from the base class to standardize responses (`this.sendSuccess` for success and `this.sendError` for failures/exceptions).
+  * Standard example:
     ```javascript
     async getByCustomParam(req, res) {
         try {
-            const { param } = req.params; // ou req.query
+            const { param } = req.params; // or req.query
             const result = await targetModel.findCustom(param);
             return this.sendSuccess(res, result, 200);
         } catch (error) {
@@ -49,8 +79,8 @@ Este documento estabelece as diretrizes de arquitetura, padrões de código, reg
         }
     }
     ```
-* **Binding no Construtor:**
-  * Métodos customizados na controller devem possuir o bind explícito no construtor para evitar perda de contexto do `this`:
+* **Constructor Binding:**
+  * Custom methods in the controller must have explicit binding in the constructor to avoid losing the `this` context:
     ```javascript
     constructor() {
         super(targetModel, 'EntityName');
@@ -60,59 +90,59 @@ Este documento estabelece as diretrizes de arquitetura, padrões de código, reg
 
 ---
 
-## 📦 4. Contrato de API (Payloads)
+## 📦 5. API Contract (Payloads)
 
-O formato de comunicação com a API é padronizado e obedece às seguintes regras:
+The API communication format is standardized and follows these rules:
 
-* **Payload de Entrada (Request):**
-  * Toda a entrada de dados (para criação e atualização) é feita exclusivamente via `req.body`.
-  * **Polimorfismo:** O contrato aceita tanto um objeto único quanto um array de objetos para operações em lote. A API processa ambas as formas de maneira transparente.
-    * *Exemplo Único:* `{ "nome": "Evento 1" }`
-    * *Exemplo Lote:* `[{ "nome": "Evento 1" }, { "nome": "Evento 2" }]`
+* **Input Payload (Request):**
+  * All data input (for creation and updates) is done exclusively via `req.body`.
+  * **Polymorphism:** The contract accepts both a single object and an array of objects for batch operations. The API processes both forms transparently.
+    * *Single Example:* `{ "name": "Event 1" }`
+    * *Batch Example:* `[{ "name": "Event 1" }, { "name": "Event 2" }]`
 
-* **Payload de Saída (Response - Sucesso):**
-  * Padronizado pelo método `this.sendSuccess`.
-  * Estrutura:
+* **Output Payload (Response - Success):**
+  * Standardized by the `this.sendSuccess` method.
+  * Structure:
     ```json
     {
       "success": true,
-      "data": <Objeto Array de objetos ou>
+      "data": <Object Array objects of or>
     }
     ```
 
-* **Payload de Saída (Response - Erro):**
-  * Padronizado pelo método `this.sendError`.
-  * Estrutura:
+* **Output Payload (Response - Error):**
+  * Standardized by the `this.sendError` method.
+  * Structure:
     ```json
     {
       "success": false,
-      "message": "<Descrição clara do erro>"
+      "message": "<Clear description error of the>"
     }
     ```
 
 ---
 
-## 🔄 5. Ordem de Refatoração e Progresso
+## 🔄 6. Refactoring Order and Progress
 
-O desenvolvimento, refatoração e estruturação das entidades do projeto seguem estritamente a **ordem alfabética**:
+The project's entity development, refactoring, and structuring strictly follow **alphabetical order**:
 
-1. `AccessProfileController` (e Model/Testes correspondentes)
-2. `EquipmentController` (e Model/Testes correspondentes)
-3. `EventController` (e Model/Testes correspondentes)
-4. `MemberController` (Próximo na fila)
-5. Demais entidades subsequentes...
+1. `AccessProfileController` (and corresponding Model/Tests)
+2. `EquipmentController` (and corresponding Model/Tests)
+3. `EventController` (and corresponding Model/Tests)
+4. `MemberController` (Next in line)
+5. Other subsequent entities...
 
 ---
 
-## 🧪 6. Padrões de Testes Unitários e Cobertura
+## 🧪 7. Unit Testing and Coverage Standards
 
-* **Cobertura de 100% (Incluindo Branches):**
-  * As suítes de testes unitários devem obrigatoriamente buscar **100% de cobertura de código**, contemplando todas as ramificações (`branches`), instruções, funções e linhas.
-* **Uso Obrigatório de Mocks:**
-  * Os testes devem utilizar sempre os **mocks dedicados** para as Models como fonte de dados de teste (localizados em `tests/mocks/`).
-* **Isolamento e Limpeza:**
-  * Sempre limpar os mocks no ciclo de vida dos testes (`jest.clearAllMocks()`).
-  * Mockar explicitamente os models utilizando `jest.mock('../../src/models/TargetModel')`.
-* **Cenários Obrigatórios:**
-  * Validar fluxos de sucesso (retornos `200`, `201`).
-  * Validar tratamentos de erro de infraestrutura/model (retornos `500`).
+* **100% Coverage (Including Branches):**
+  * Unit test suites must mandatorily achieve **100% code coverage**, encompassing all branches, statements, functions, and lines.
+* **Mandatory Use of Mocks:**
+  * Tests must always use the **dedicated mocks** for the Models as the test data source (located in `tests/mocks/`).
+* **Isolation and Cleanup:**
+  * Always clear mocks in the test lifecycle (`jest.clearAllMocks()`).
+  * Explicitly mock the models using `jest.mock('../../src/models/TargetModel')`.
+* **Mandatory Scenarios:**
+  * Validate success flows (returns `200`, `201`).
+  * Validate infrastructure/model error handling (returns `500`).
