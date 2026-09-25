@@ -1,132 +1,79 @@
 class BaseController {
-    /**
-     * @param {Object} model Instance de BaseModel (ex: MemberModel)
-     * @param {string} resourceName Nome do recurso para mensagens (ex: 'Member', 'Team')
-     */
-    constructor(model, resourceName = 'Resource') {
+    constructor(model) {
         this.model = model;
-        this.resourceName = resourceName;
-
-        // Binda o contexto das funções para não perder o 'this' quando passadas para rotas do Express
-        this.getAll = this.getAll.bind(this);
-        this.getById = this.getById.bind(this);
-        this.create = this.create.bind(this);
-        this.update = this.update.bind(this);
-        this.delete = this.delete.bind(this);
     }
 
-    /**
-     * Helper para padronizar respostas de sucesso
-     */
-    sendSuccess(res, data, statusCode = 200) {
-        return res.status(statusCode).json({
-            success: true,
-            data
-        });
-    }
-
-    /**
-     * Helper para padronizar respostas de erro
-     */
-    sendError(res, message = 'Internal server error', statusCode = 500, error = null) {
-        const response = {
-            success: false,
-            message
-        };
-
-        if (error) {
-            response.error = typeof error === 'object' && error.message ? error.message : error;
-        }
-
-        return res.status(statusCode).json(response);
-    }
-
-    /**
-     * Lista todos os registros
-     */
-    async getAll(req, res) {
+    getAll = async (req, res) => {
         try {
-            const items = await this.model.findAll();
-            return this.sendSuccess(res, items, 200);
+            const data = await this.model.getRecords();
+            return res.status(200).json(data);
         } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
+            return res.status(500).json({ error: 'Erro interno no servidor.', details: error.message });
         }
-    }
+    };
 
-    /**
-     * Busca registro por ID
-     */
-    async getById(req, res) {
+    getById = async (req, res) => {
         try {
-            const { id } = req.params;
-            const item = await this.model.findById(id);
-
-            if (!item) {
-                return this.sendError(res, `${this.resourceName} not found`, 404);
+            const { id } = req.body;
+            if (!id) {
+                return res.status(400).json({ error: 'O ID é obrigatório no corpo da requisição.' });
             }
 
-            return this.sendSuccess(res, item, 200);
-        } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
-        }
-    }
-
-    /**
-     * Cria um novo registro
-     */
-    async create(req, res) {
-        try {
-            const payload = req.body;
-            const insertId = await this.model.create(payload);
-            const newItem = await this.model.findById(insertId);
-
-            return this.sendSuccess(res, newItem, 201);
-        } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
-        }
-    }
-
-    /**
-     * Atualiza um registro
-     */
-    async update(req, res) {
-        try {
-            const { id } = req.params;
-            const payload = req.body;
-
-            const updated = await this.model.update(id, payload);
-
-            if (!updated) {
-                return this.sendError(res, `${this.resourceName} not found or no changes made`, 404);
+            const data = await this.model.findById(id);
+            if (!data) {
+                return res.status(404).json({ error: 'Registro não encontrado.' });
             }
 
-            const item = await this.model.findById(id);
-            return this.sendSuccess(res, item, 200);
+            return res.status(200).json(data);
         } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
+            return res.status(500).json({ error: 'Erro interno no servidor.', details: error.message });
         }
-    }
+    };
 
-    /**
-     * Deleta um registro
-     */
-    async delete(req, res) {
+    create = async (req, res) => {
         try {
-            const { id } = req.params;
-            const deleted = await this.model.delete(id);
+            const insertId = await this.model.create(req.body);
+            return res.status(201).json({ message: 'Registro criado com sucesso.', id: insertId });
+        } catch (error) {
+            return res.status(500).json({ error: 'Erro ao criar registro.', details: error.message });
+        }
+    };
 
-            if (!deleted) {
-                return this.sendError(res, `${this.resourceName} not found`, 404);
+    update = async (req, res) => {
+        try {
+            const { id, ...data } = req.body;
+            if (!id) {
+                return res.status(400).json({ error: 'O ID é obrigatório no corpo da requisição.' });
             }
 
-            return res.status(200).json({
-                success: true,
-                message: `${this.resourceName} deleted successfully`
-            });
+            const affectedRows = await this.model.update(id, data);
+            if (affectedRows === 0) {
+                return res.status(404).json({ error: 'Registro não encontrado ou nenhuma alteração realizada.' });
+            }
+
+            return res.status(200).json({ message: 'Registro atualizado com sucesso.' });
         } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
+            return res.status(500).json({ error: 'Erro ao atualizar registro.', details: error.message });
         }
-    }
+    };
+
+    delete = async (req, res) => {
+        try {
+            const { id } = req.body;
+            if (!id) {
+                return res.status(400).json({ error: 'O ID é obrigatório no corpo da requisição.' });
+            }
+
+            const affectedRows = await this.model.delete(id);
+            if (affectedRows === 0) {
+                return res.status(404).json({ error: 'Registro não encontrado.' });
+            }
+
+            return res.status(200).json({ message: 'Registro removido com sucesso.' });
+        } catch (error) {
+            return res.status(500).json({ error: 'Erro ao remover registro.', details: error.message });
+        }
+    };
 }
 
 module.exports = BaseController;

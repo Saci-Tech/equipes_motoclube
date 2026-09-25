@@ -1,6 +1,6 @@
 const MemberModel = require('../../src/models/MemberModel');
 const db = require('../../src/config/database');
-const mocks = require('../mocks/memberModel.mock'); // <-- Caminho corrigido aqui!
+const mocks = require('../mocks/memberModel.mock');
 
 jest.mock('../../src/config/database');
 
@@ -13,7 +13,7 @@ describe('MemberModel Unit Tests - 100% Coverage', () => {
     });
 
     test('constructor inicializa corretamente o nome da tabela e chave primária', () => {
-        expect(model.tableName).toBe('members');
+        expect(model.tableName).toBe('integrantes');
         expect(model.primaryKey).toBe('id');
     });
 
@@ -30,12 +30,12 @@ describe('MemberModel Unit Tests - 100% Coverage', () => {
             
             expect(result).toEqual(mocks.validMember);
             expect(db.query).toHaveBeenCalledWith(
-                expect.stringContaining('SELECT * FROM'), 
+                expect.stringContaining('WHERE email = ?'), 
                 ['joao@example.com']
             );
         });
 
-        test('retorna null se o email não for encontrado', async () => {
+        test('retorna null se o membro não for encontrado pelo email', async () => {
             db.query.mockResolvedValueOnce([[]]);
             const result = await model.findByEmail('inexistente@example.com');
             
@@ -45,7 +45,7 @@ describe('MemberModel Unit Tests - 100% Coverage', () => {
 
     describe('findByCpf', () => {
         test('retorna null se o CPF não for fornecido', async () => {
-            const result = await model.findByCpf(undefined);
+            const result = await model.findByCpf(null);
             expect(result).toBeNull();
             expect(db.query).not.toHaveBeenCalled();
         });
@@ -56,14 +56,15 @@ describe('MemberModel Unit Tests - 100% Coverage', () => {
             
             expect(result).toEqual(mocks.validMember);
             expect(db.query).toHaveBeenCalledWith(
-                expect.stringContaining('SELECT * FROM'), 
+                expect.stringContaining('WHERE cpf = ?'), 
                 ['12345678900']
             );
         });
 
-        test('retorna null se o CPF não for encontrado', async () => {
+        test('retorna null se o membro não for encontrado pelo CPF', async () => {
             db.query.mockResolvedValueOnce([[]]);
             const result = await model.findByCpf('00000000000');
+            
             expect(result).toBeNull();
         });
     });
@@ -87,7 +88,7 @@ describe('MemberModel Unit Tests - 100% Coverage', () => {
             expect(result).toEqual(mocks.validMemberWithTeamsResult);
         });
 
-        test('retorna membro com lista de times vazia caso não pertença a nenhum', async () => {
+        test('retorna membro com lista de times vazia caso não participe de nenhum', async () => {
             db.query.mockResolvedValueOnce([mocks.validMemberWithoutTeamsRaw]);
             const result = await model.findWithTeams(2);
             expect(result).toEqual(mocks.validMemberWithoutTeamsResult);

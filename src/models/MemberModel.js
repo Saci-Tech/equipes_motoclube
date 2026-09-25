@@ -4,7 +4,7 @@ const db = require('../config/database');
 class MemberModel extends BaseModel {
     constructor() {
         // Inicializa a BaseModel com o nome da tabela e a chave primária
-        super('members', 'id'); 
+        super('integrantes', 'id'); 
     }
 
     /**

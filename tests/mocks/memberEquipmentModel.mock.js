@@ -16,7 +16,7 @@ const memberEquipmentModelMock = {
             id_equipamento: 5,
             data_retirada: '2023-10-01T10:00:00.000Z',
             data_devolucao: null,
-            equipamento_nome: 'Rádio Comunicador HT' // Dado oriundo do INNER JOIN
+            equipamento_nome: 'Rádio Comunicador HT'
         },
         {
             id: 2,

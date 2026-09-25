@@ -1,73 +1,50 @@
 const BaseController = require('./BaseController');
-const equipmentModel = require('../models/EquipmentModel');
+const EquipmentModel = require('../models/EquipmentModel');
 
 class EquipmentController extends BaseController {
     constructor() {
-        super(equipmentModel, 'Equipment');
-
-        this.getBySerialNumber = this.getBySerialNumber.bind(this);
-        this.getByCategory = this.getByCategory.bind(this);
-        this.getByStatus = this.getByStatus.bind(this);
+        super(new EquipmentModel());
     }
 
-    /**
-     * Sobrescreve create para garantir a presença do campo 'name'
-     */
-    async create(req, res) {
-        const payload = req.body;
-
-        if (!payload || !payload.name) {
-            return this.sendError(res, 'Missing required field: name is required', 400);
-        }
-
-        return super.create(req, res);
-    }
-
-    /**
-     * Busca equipamento pelo Número de Série
-     */
-    async getBySerialNumber(req, res) {
+    findByName = async (req, res) => {
         try {
-            const { serialNumber } = req.params;
-            const equipment = await equipmentModel.findBySerialNumber(serialNumber);
+            const { nome } = req.body;
 
-            if (!equipment) {
-                return this.sendError(res, 'Equipment not found', 404);
+            if (!nome) {
+                return res.status(400).json({ error: 'O campo "nome" é obrigatório no corpo da requisição.' });
             }
 
-            return this.sendSuccess(res, equipment, 200);
-        } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
-        }
-    }
+            const data = await this.model.findByName(nome);
 
-    /**
-     * Lista equipamentos por Categoria
-     */
-    async getByCategory(req, res) {
+            if (!data) {
+                return res.status(404).json({ error: 'Equipamento não encontrado.' });
+            }
+
+            return res.status(200).json(data);
+        } catch (error) {
+            return res.status(500).json({ error: 'Erro interno no servidor.', details: error.message });
+        }
+    };
+
+    findWithMembers = async (req, res) => {
         try {
-            const { category } = req.params;
-            const items = await equipmentModel.findByCategory(category);
+            const { id } = req.body;
 
-            return this.sendSuccess(res, items, 200);
+            if (!id) {
+                return res.status(400).json({ error: 'O ID do equipamento é obrigatório no corpo da requisição.' });
+            }
+
+            const data = await this.model.findWithMembers(id);
+
+            if (!data) {
+                return res.status(404).json({ error: 'Equipamento não encontrado ou sem vínculos.' });
+            }
+
+            return res.status(200).json(data);
         } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
+            return res.status(500).json({ error: 'Erro interno no servidor.', details: error.message });
         }
-    }
-
-    /**
-     * Lista equipamentos por Status (ex: DISPONIVEL, EM_USO, MANUTENCAO)
-     */
-    async getByStatus(req, res) {
-        try {
-            const { status } = req.params;
-            const items = await equipmentModel.findByStatus(status);
-
-            return this.sendSuccess(res, items, 200);
-        } catch (error) {
-            return this.sendError(res, 'Internal server error', 500, error);
-        }
-    }
+    };
 }
 
-module.exports = new EquipmentController();
+module.exports = EquipmentController;

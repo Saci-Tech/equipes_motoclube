@@ -1,5 +1,5 @@
 /**
- * Mocks centralizados para testes unitários do MemberModel
+ * Mocks centralizados para testes unitários da MemberModel
  */
 const memberModelMock = {
     validMember: {
@@ -15,7 +15,7 @@ const memberModelMock = {
             email: 'joao@example.com',
             cpf: '12345678900',
             team_id: 10,
-            team_name: 'Time Alpha'
+            team_name: 'Equipe Alpha'
         },
         {
             id: 1,
@@ -23,7 +23,7 @@ const memberModelMock = {
             email: 'joao@example.com',
             cpf: '12345678900',
             team_id: 20,
-            team_name: 'Time Beta'
+            team_name: 'Equipe Bravo'
         }
     ],
     validMemberWithTeamsResult: {
@@ -32,8 +32,8 @@ const memberModelMock = {
         email: 'joao@example.com',
         cpf: '12345678900',
         teams: [
-            { id: 10, name: 'Time Alpha' },
-            { id: 20, name: 'Time Beta' }
+            { id: 10, name: 'Equipe Alpha' },
+            { id: 20, name: 'Equipe Bravo' }
         ]
     },
     validMemberWithoutTeamsRaw: [
@@ -41,7 +41,7 @@ const memberModelMock = {
             id: 2,
             nome: 'Maria Souza',
             email: 'maria@example.com',
-            cpf: '98765432100',
+            cpf: '09876543211',
             team_id: null,
             team_name: null
         }
@@ -50,7 +50,7 @@ const memberModelMock = {
         id: 2,
         nome: 'Maria Souza',
         email: 'maria@example.com',
-        cpf: '98765432100',
+        cpf: '09876543211',
         teams: []
     }
 };

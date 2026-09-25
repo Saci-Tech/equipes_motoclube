@@ -1,157 +1,92 @@
-// =========================================================================
-// TESTE UNITÁRIO: BaseController.test.js
-// =========================================================================
-
 const BaseController = require('../../src/controllers/BaseController');
+const equipmentMock = require('../mocks/equipmentModel.mock');
 
-describe('BaseController (Controller Base Abstrato)', () => {
+describe('BaseController Unit Tests - 100% Coverage', () => {
     let mockModel;
     let controller;
     let req;
     let res;
 
     beforeEach(() => {
+        jest.clearAllMocks();
+
         mockModel = {
-            findAll: jest.fn(),
+            getRecords: jest.fn(),
             findById: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
             delete: jest.fn()
         };
 
-        controller = new BaseController(mockModel, 'TestResource');
+        controller = new BaseController(mockModel);
 
-        req = {
-            params: {},
-            body: {}
-        };
-
+        req = { body: {} };
         res = {
             status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis()
+            json: jest.fn()
         };
-    });
-
-    describe('Construtor', () => {
-        it('deve usar "Resource" como resourceName padrao caso nao seja fornecido', () => {
-            const defaultController = new BaseController(mockModel);
-            expect(defaultController.resourceName).toBe('Resource');
-        });
-    });
-
-    describe('Helpers de Resposta (sendSuccess, sendError)', () => {
-        it('sendSuccess deve formatar resposta com status informado e envelope padrao', () => {
-            controller.sendSuccess(res, { id: 1 }, 201);
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({ success: true, data: { id: 1 } });
-        });
-
-        it('sendSuccess deve usar status code 200 por padrao se nao for informado', () => {
-            controller.sendSuccess(res, { id: 1 });
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ success: true, data: { id: 1 } });
-        });
-
-        it('sendError deve formatar erro simples sem objeto de erro', () => {
-            controller.sendError(res, 'Not Found', 404);
-            expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Not Found' });
-        });
-
-        it('sendError deve formatar erro com objeto de erro contendo mensagem (Error instance)', () => {
-            controller.sendError(res, 'Fail', 500, new Error('Db error'));
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Fail',
-                error: 'Db error'
-            });
-        });
-
-        it('sendError deve formatar erro quando error for um objeto sem propriedade message', () => {
-            const customObjError = { code: 1024, raw: 'Internal fault' };
-            controller.sendError(res, 'Fail', 500, customObjError);
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Fail',
-                error: customObjError
-            });
-        });
-
-        it('sendError deve formatar erro quando error for uma string', () => {
-            controller.sendError(res, 'Fail', 500, 'Custom error string');
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Fail',
-                error: 'Custom error string'
-            });
-        });
-
-        it('sendError deve usar valores padrao de mensagem e status code', () => {
-            controller.sendError(res);
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Internal server error'
-            });
-        });
     });
 
     describe('getAll', () => {
-        it('deve retornar todos os itens com status 200', async () => {
-            const list = [{ id: 1 }, { id: 2 }];
-            mockModel.findAll.mockResolvedValueOnce(list);
+        test('deve retornar 200 e a lista de registros com sucesso', async () => {
+            const mockList = equipmentMock.allRecords || [{ id: 1, nome: 'Teste' }];
+            mockModel.getRecords.mockResolvedValueOnce(mockList);
 
             await controller.getAll(req, res);
 
-            expect(mockModel.findAll).toHaveBeenCalledTimes(1);
+            expect(mockModel.getRecords).toHaveBeenCalledTimes(1);
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ success: true, data: list });
+            expect(res.json).toHaveBeenCalledWith(mockList);
         });
 
-        it('deve retornar status 500 em caso de erro no model', async () => {
-            mockModel.findAll.mockRejectedValueOnce(new Error('Database error'));
+        test('deve retornar 500 quando ocorrer um erro interno no model', async () => {
+            mockModel.getRecords.mockRejectedValueOnce(new Error('Database Connection Error'));
 
             await controller.getAll(req, res);
 
             expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Internal server error',
-                error: 'Database error'
-            });
+            expect(res.json).toHaveBeenCalledWith(
+                expect.objectContaining({ error: 'Erro interno no servidor.' })
+            );
         });
     });
 
     describe('getById', () => {
-        it('deve retornar item encontrado com status 200', async () => {
-            req.params.id = '1';
-            mockModel.findById.mockResolvedValueOnce({ id: 1 });
+        test('deve retornar 400 se o ID não for fornecido no payload', async () => {
+            await controller.getById(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ error: 'O ID é obrigatório no corpo da requisição.' });
+            expect(mockModel.findById).not.toHaveBeenCalled();
+        });
+
+        test('deve retornar 200 e o registro quando encontrado pelo ID no payload', async () => {
+            const targetId = 1;
+            req.body = { id: targetId };
+            const mockRecord = { id: targetId, ...(equipmentMock.validPayload || {}) };
+            
+            mockModel.findById.mockResolvedValueOnce(mockRecord);
 
             await controller.getById(req, res);
 
-            expect(mockModel.findById).toHaveBeenCalledWith('1');
+            expect(mockModel.findById).toHaveBeenCalledWith(targetId);
             expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith(mockRecord);
         });
 
-        it('deve retornar status 404 quando item nao for encontrado', async () => {
-            req.params.id = '999';
+        test('deve retornar 404 quando o registro não for encontrado', async () => {
+            req.body = { id: 9999 };
             mockModel.findById.mockResolvedValueOnce(null);
 
             await controller.getById(req, res);
 
             expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'TestResource not found'
-            });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Registro não encontrado.' });
         });
 
-        it('deve retornar 500 em caso de erro', async () => {
-            req.params.id = '1';
-            mockModel.findById.mockRejectedValueOnce(new Error('Fatal error'));
+        test('deve retornar 500 em caso de erro na consulta por ID', async () => {
+            req.body = { id: 1 };
+            mockModel.findById.mockRejectedValueOnce(new Error('DB Error'));
 
             await controller.getById(req, res);
 
@@ -160,21 +95,21 @@ describe('BaseController (Controller Base Abstrato)', () => {
     });
 
     describe('create', () => {
-        it('deve criar novo item e retornar 201 com o recurso', async () => {
-            req.body = { name: 'Novo' };
+        test('deve retornar 201 e o ID gerado ao criar um registro com sucesso', async () => {
+            const payload = equipmentMock.validPayload || { nome: 'Novo' };
+            req.body = payload;
             mockModel.create.mockResolvedValueOnce(10);
-            mockModel.findById.mockResolvedValueOnce({ id: 10, name: 'Novo' });
 
             await controller.create(req, res);
 
-            expect(mockModel.create).toHaveBeenCalledWith({ name: 'Novo' });
-            expect(mockModel.findById).toHaveBeenCalledWith(10);
+            expect(mockModel.create).toHaveBeenCalledWith(payload);
             expect(res.status).toHaveBeenCalledWith(201);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Registro criado com sucesso.', id: 10 });
         });
 
-        it('deve retornar 500 se o model falhar na criacao', async () => {
-            req.body = { name: 'Novo' };
-            mockModel.create.mockRejectedValueOnce(new Error('Creation failed'));
+        test('deve retornar 500 se ocorrer erro ao criar o registro', async () => {
+            req.body = equipmentMock.validPayload || { nome: 'Novo' };
+            mockModel.create.mockRejectedValueOnce(new Error('Insert Error'));
 
             await controller.create(req, res);
 
@@ -183,34 +118,41 @@ describe('BaseController (Controller Base Abstrato)', () => {
     });
 
     describe('update', () => {
-        it('deve atualizar o item e retornar 200', async () => {
-            req.params.id = '1';
-            req.body = { name: 'Atualizado' };
-            mockModel.update.mockResolvedValueOnce(true);
-            mockModel.findById.mockResolvedValueOnce({ id: 1, name: 'Atualizado' });
+        test('deve retornar 400 se o ID estiver ausente no payload de atualização', async () => {
+            req.body = { nome: 'Apenas dados sem ID' };
 
             await controller.update(req, res);
 
-            expect(mockModel.update).toHaveBeenCalledWith('1', { name: 'Atualizado' });
-            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ error: 'O ID é obrigatório no corpo da requisição.' });
+            expect(mockModel.update).not.toHaveBeenCalled();
         });
 
-        it('deve retornar status 404 se nada for alterado/nao encontrado', async () => {
-            req.params.id = '999';
-            mockModel.update.mockResolvedValueOnce(false);
+        test('deve retornar 200 quando o registro for atualizado com sucesso', async () => {
+            const payload = { id: 1, ...(equipmentMock.validPayload || { nome: 'Atualizado' }) };
+            req.body = payload;
+            mockModel.update.mockResolvedValueOnce(1);
+
+            await controller.update(req, res);
+
+            expect(mockModel.update).toHaveBeenCalledWith(1, expect.any(Object));
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Registro atualizado com sucesso.' });
+        });
+
+        test('deve retornar 404 se nenhuma linha for afetada na atualização', async () => {
+            req.body = { id: 9999, nome: 'Inexistente' };
+            mockModel.update.mockResolvedValueOnce(0);
 
             await controller.update(req, res);
 
             expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'TestResource not found or no changes made'
-            });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Registro não encontrado ou nenhuma alteração realizada.' });
         });
 
-        it('deve retornar 500 em caso de excecao', async () => {
-            req.params.id = '1';
-            mockModel.update.mockRejectedValueOnce(new Error('Update failed'));
+        test('deve retornar 500 em caso de erro na atualização', async () => {
+            req.body = { id: 1, nome: 'Erro' };
+            mockModel.update.mockRejectedValueOnce(new Error('Update Error'));
 
             await controller.update(req, res);
 
@@ -219,36 +161,39 @@ describe('BaseController (Controller Base Abstrato)', () => {
     });
 
     describe('delete', () => {
-        it('deve deletar registro e retornar status 200 com mensagem', async () => {
-            req.params.id = '1';
-            mockModel.delete.mockResolvedValueOnce(true);
+        test('deve retornar 400 se o ID não for fornecido para exclusão', async () => {
+            await controller.delete(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ error: 'O ID é obrigatório no corpo da requisição.' });
+            expect(mockModel.delete).not.toHaveBeenCalled();
+        });
+
+        test('deve retornar 200 quando o registro for removido com sucesso', async () => {
+            const targetId = 1;
+            req.body = { id: targetId };
+            mockModel.delete.mockResolvedValueOnce(1);
 
             await controller.delete(req, res);
 
-            expect(mockModel.delete).toHaveBeenCalledWith('1');
+            expect(mockModel.delete).toHaveBeenCalledWith(targetId);
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                success: true,
-                message: 'TestResource deleted successfully'
-            });
+            expect(res.json).toHaveBeenCalledWith({ message: 'Registro removido com sucesso.' });
         });
 
-        it('deve retornar 404 se registro nao existir', async () => {
-            req.params.id = '999';
-            mockModel.delete.mockResolvedValueOnce(false);
+        test('deve retornar 404 se o registro não for encontrado para exclusão', async () => {
+            req.body = { id: 9999 };
+            mockModel.delete.mockResolvedValueOnce(0);
 
             await controller.delete(req, res);
 
             expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'TestResource not found'
-            });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Registro não encontrado.' });
         });
 
-        it('deve retornar 500 se ocorrer erro', async () => {
-            req.params.id = '1';
-            mockModel.delete.mockRejectedValueOnce(new Error('Delete error'));
+        test('deve retornar 500 em caso de erro na remoção', async () => {
+            req.body = { id: 1 };
+            mockModel.delete.mockRejectedValueOnce(new Error('Delete Error'));
 
             await controller.delete(req, res);
 

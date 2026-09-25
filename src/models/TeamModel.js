@@ -3,57 +3,70 @@ const db = require('../config/database');
 
 class TeamModel extends BaseModel {
     constructor() {
-        super('equipes_especiais');
+        // Inicializa a BaseModel com a tabela de equipes
+        super('equipes_especiais', 'id');
     }
 
     /**
-     * De/Para: Banco de Dados (snake_case/PT) -> Payload da API (camelCase/EN)
+     * Busca uma equipe pelo nome
+     * @param {string} nome 
+     * @returns {Promise<Object|null>}
      */
-    deserialize(row) {
-        if (!row) return null;
-        return {
-            id: row.id,
-            name: row.nome,
-            category: row.categoria,
-            status: row.status,
-            description: row.descricao
+    async findByName(nome) {
+        if (!nome) return null;
+
+        const [rows] = await db.query(
+            `SELECT * FROM ${this.tableName} WHERE nome_equipe = ?`,
+            [nome]
+        );
+
+        return rows.length > 0 ? rows[0] : null;
+    }
+
+    /**
+     * Busca uma equipe e mapeia todos os integrantes vinculados a ela
+     * @param {number} teamId 
+     * @returns {Promise<Object|null>}
+     */
+    async findWithMembers(teamId) {
+        if (!teamId) return null;
+
+        const query = `
+            SELECT 
+                eq.id, eq.nome_equipe, eq.descricao, eq.ativo,
+                ipe.id_integrante,
+                i.nome AS integrante_nome,
+                i.email AS integrante_email
+            FROM ${this.tableName} eq
+            LEFT JOIN integrante_por_equipe ipe ON eq.id = ipe.id_equipe
+            LEFT JOIN integrantes i ON ipe.id_integrante = i.id
+            WHERE eq.id = ?
+        `;
+
+        const [rows] = await db.query(query, [teamId]);
+
+        if (!rows || rows.length === 0) return null;
+
+        const teamInfo = {
+            id: rows[0].id,
+            nome_equipe: rows[0].nome_equipe,
+            descricao: rows[0].descricao,
+            ativo: rows[0].ativo,
+            members: [] // Array que receberá os integrantes
         };
-    }
 
-    /**
-     * De/Para: Payload da API (camelCase/EN) -> Banco de Dados (snake_case/PT)
-     */
-    serialize(payload) {
-        if (!payload) return {};
-        const mapped = {};
-        if (payload.name !== undefined) mapped.nome = payload.name;
-        if (payload.category !== undefined) mapped.categoria = payload.category;
-        if (payload.status !== undefined) mapped.status = payload.status;
-        if (payload.description !== undefined) mapped.descricao = payload.description;
-        return mapped;
-    }
+        rows.forEach(row => {
+            if (row.id_integrante) {
+                teamInfo.members.push({
+                    member_id: row.id_integrante,
+                    member_name: row.integrante_nome,
+                    member_email: row.integrante_email
+                });
+            }
+        });
 
-    /**
-     * Busca equipe pelo nome exato
-     */
-    async findByName(name) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE nome = ?`,
-            [name]
-        );
-        return rows.length > 0 ? this.deserialize(rows[0]) : null;
-    }
-
-    /**
-     * Lista equipes por categoria
-     */
-    async findByCategory(category) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE categoria = ?`,
-            [category]
-        );
-        return this.deserializeList(rows);
+        return teamInfo;
     }
 }
 
-module.exports = new TeamModel();
+module.exports = TeamModel;

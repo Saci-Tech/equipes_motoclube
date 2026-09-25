@@ -1,71 +1,71 @@
-const EquipmentModel = require('../../src/models/EquipmentModel');
+const MemberEquipmentModel = require('../../src/models/MemberEquipmentModel');
 const db = require('../../src/config/database');
-const mocks = require('../mocks/equipmentModel.mock');
+const mocks = require('../mocks/memberEquipmentModel.mock');
 
 jest.mock('../../src/config/database');
 
-describe('EquipmentModel Unit Tests - 100% Coverage', () => {
+describe('MemberEquipmentModel Unit Tests - 100% Coverage', () => {
     let model;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        model = new EquipmentModel();
+        model = new MemberEquipmentModel();
     });
 
     test('constructor inicializa corretamente o nome da tabela e chave primária', () => {
-        expect(model.tableName).toBe('equipamentos');
+        expect(model.tableName).toBe('integrante_equipamento');
         expect(model.primaryKey).toBe('id');
     });
 
-    describe('findByName', () => {
-        test('retorna null se o nome não for fornecido', async () => {
-            const result = await model.findByName(null);
+    describe('findActiveByEquipment', () => {
+        test('retorna null se o id do equipamento não for fornecido', async () => {
+            const result = await model.findActiveByEquipment(null);
             expect(result).toBeNull();
             expect(db.query).not.toHaveBeenCalled();
         });
 
-        test('retorna o equipamento se o nome for encontrado', async () => {
-            db.query.mockResolvedValueOnce([[mocks.validEquipment]]);
-            const result = await model.findByName('Rádio Comunicador HT');
+        test('retorna o empréstimo ativo se o equipamento estiver com alguém', async () => {
+            db.query.mockResolvedValueOnce([[mocks.activeAssignment]]);
+            const result = await model.findActiveByEquipment(5);
             
-            expect(result).toEqual(mocks.validEquipment);
+            expect(result).toEqual(mocks.activeAssignment);
             expect(db.query).toHaveBeenCalledWith(
-                expect.stringContaining('SELECT * FROM'), 
-                ['Rádio Comunicador HT']
+                expect.stringContaining('data_devolucao IS NULL'), 
+                [5]
             );
         });
 
-        test('retorna null se o equipamento não for encontrado', async () => {
+        test('retorna null se o equipamento não possuir empréstimo ativo', async () => {
             db.query.mockResolvedValueOnce([[]]);
-            const result = await model.findByName('Inexistente');
+            const result = await model.findActiveByEquipment(99);
             
             expect(result).toBeNull();
         });
     });
 
-    describe('findWithMembers', () => {
-        test('retorna null se o id do equipamento não for informado', async () => {
-            const result = await model.findWithMembers(null);
+    describe('findByMember', () => {
+        test('retorna null se o id do integrante não for fornecido', async () => {
+            const result = await model.findByMember(null);
             expect(result).toBeNull();
             expect(db.query).not.toHaveBeenCalled();
         });
 
-        test('retorna null se a consulta retornar vazia (equipamento não existe)', async () => {
+        test('retorna o histórico de equipamentos do integrante com os nomes anexados', async () => {
+            db.query.mockResolvedValueOnce([mocks.memberHistory]);
+            const result = await model.findByMember(10);
+            
+            expect(result).toEqual(mocks.memberHistory);
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('INNER JOIN equipamentos'), 
+                [10]
+            );
+        });
+
+        test('retorna array vazio se o integrante não tiver histórico de equipamentos', async () => {
             db.query.mockResolvedValueOnce([[]]);
-            const result = await model.findWithMembers(99);
-            expect(result).toBeNull();
-        });
-
-        test('retorna equipamento com a lista de atribuições populada', async () => {
-            db.query.mockResolvedValueOnce([mocks.validEquipmentWithMembersRaw]);
-            const result = await model.findWithMembers(1);
-            expect(result).toEqual(mocks.validEquipmentWithMembersResult);
-        });
-
-        test('retorna equipamento com lista de atribuições vazia caso não tenha histórico', async () => {
-            db.query.mockResolvedValueOnce([mocks.validEquipmentWithoutMembersRaw]);
-            const result = await model.findWithMembers(2);
-            expect(result).toEqual(mocks.validEquipmentWithoutMembersResult);
+            const result = await model.findByMember(99);
+            
+            expect(result).toEqual([]);
         });
     });
 });

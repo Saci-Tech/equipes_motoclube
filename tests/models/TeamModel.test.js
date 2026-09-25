@@ -1,139 +1,71 @@
-// =========================================================================
-// TESTE UNITÁRIO: TeamModel.test.js
-// =========================================================================
-
+const TeamModel = require('../../src/models/TeamModel');
 const db = require('../../src/config/database');
-const teamModel = require('../../src/models/TeamModel');
-const { dbRowMock, dbRowListMock, apiPayloadMock } = require('../mocks/Team.mock');
+const mocks = require('../mocks/teamModel.mock');
 
-jest.mock('../../src/config/database', () => {
-    const mockQuery = jest.fn();
-    return {
-        promise: () => ({
-            query: mockQuery
-        }),
-        _mockQuery: mockQuery
-    };
-});
+jest.mock('../../src/config/database');
 
-describe('TeamModel (Modelo de Equipes)', () => {
-    let mockQuery;
+describe('TeamModel Unit Tests - 100% Coverage', () => {
+    let model;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockQuery = db._mockQuery;
+        model = new TeamModel();
     });
 
-    describe('Serialização e Deserialização', () => {
-        it('deve converter linha do banco para camelCase', () => {
-            const result = teamModel.deserialize(dbRowMock);
-            expect(result).toEqual({
-                id: 1,
-                name: 'Equipe Alpha',
-                category: 'SENIOR',
-                status: 'ATIVO',
-                description: 'Equipe principal de competição'
-            });
-        });
-
-        it('deve retornar null ao deserializar valor nulo ou undefined', () => {
-            expect(teamModel.deserialize(null)).toBeNull();
-            expect(teamModel.deserialize(undefined)).toBeNull();
-        });
-
-        it('deve converter payload da API para colunas do banco', () => {
-            const result = teamModel.serialize(apiPayloadMock);
-            expect(result).toEqual({
-                nome: 'Equipe Alpha',
-                categoria: 'SENIOR',
-                status: 'ATIVO',
-                descricao: 'Equipe principal de competição'
-            });
-        });
-
-        it('deve serializar apenas propriedades fornecidas (parcial)', () => {
-            const result = teamModel.serialize({ name: 'Novo Nome' });
-            expect(result).toEqual({ nome: 'Novo Nome' });
-        });
-
-        it('deve retornar objeto vazio ao serializar payload nulo ou undefined', () => {
-            expect(teamModel.serialize(null)).toEqual({});
-            expect(teamModel.serialize(undefined)).toEqual({});
-        });
+    test('constructor inicializa corretamente o nome da tabela e chave primária', () => {
+        expect(model.tableName).toBe('equipes_especiais');
+        expect(model.primaryKey).toBe('id');
     });
 
-    describe('Consultas específicas (findByName, findByCategory)', () => {
-        it('findByName deve retornar equipe quando encontrada', async () => {
-            mockQuery.mockResolvedValueOnce([[dbRowMock]]);
+    describe('findByName', () => {
+        test('retorna null se o nome não for fornecido', async () => {
+            const result = await model.findByName(null);
+            expect(result).toBeNull();
+            expect(db.query).not.toHaveBeenCalled();
+        });
 
-            const result = await teamModel.findByName('Equipe Alpha');
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM equipes WHERE nome = ?',
+        test('retorna a equipe se o nome for encontrado', async () => {
+            db.query.mockResolvedValueOnce([[mocks.validTeam]]);
+            const result = await model.findByName('Equipe Alpha');
+            
+            expect(result).toEqual(mocks.validTeam);
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('WHERE nome_equipe = ?'), 
                 ['Equipe Alpha']
             );
-            expect(result.name).toBe('Equipe Alpha');
         });
 
-        it('findByName deve retornar null quando não encontrar', async () => {
-            mockQuery.mockResolvedValueOnce([[]]);
+        test('retorna null se a equipe não for encontrada', async () => {
+            db.query.mockResolvedValueOnce([[]]);
+            const result = await model.findByName('Inexistente');
+            
+            expect(result).toBeNull();
+        });
+    });
 
-            const result = await teamModel.findByName('Inexistente');
+    describe('findWithMembers', () => {
+        test('retorna null se o id da equipe não for informado', async () => {
+            const result = await model.findWithMembers(null);
+            expect(result).toBeNull();
+            expect(db.query).not.toHaveBeenCalled();
+        });
 
+        test('retorna null se a consulta retornar vazia (equipe não existe)', async () => {
+            db.query.mockResolvedValueOnce([[]]);
+            const result = await model.findWithMembers(99);
             expect(result).toBeNull();
         });
 
-        it('findByCategory deve retornar lista de equipes desserializadas', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
-
-            const result = await teamModel.findByCategory('SENIOR');
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM equipes WHERE categoria = ?',
-                ['SENIOR']
-            );
-            expect(Array.isArray(result)).toBe(true);
-            expect(result.length).toBe(2);
-            expect(result[0].category).toBe('SENIOR');
-        });
-    });
-
-    describe('Operações herdadas (create, update, findAll)', () => {
-        it('create deve converter payload para formato do banco ao inserir', async () => {
-            mockQuery.mockResolvedValueOnce([{ insertId: 3 }]);
-
-            const insertId = await teamModel.create({
-                name: 'Equipe Gamma',
-                category: 'INICIANTE'
-            });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'INSERT INTO equipes (nome, categoria) VALUES (?, ?)',
-                ['Equipe Gamma', 'INICIANTE']
-            );
-            expect(insertId).toBe(3);
+        test('retorna equipe com a lista de membros populada', async () => {
+            db.query.mockResolvedValueOnce([mocks.validTeamWithMembersRaw]);
+            const result = await model.findWithMembers(1);
+            expect(result).toEqual(mocks.validTeamWithMembersResult);
         });
 
-        it('update deve converter campos alterados para snake_case', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]);
-
-            const success = await teamModel.update(1, { description: 'Nova Descrição' });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'UPDATE equipes SET descricao = ? WHERE id = ?',
-                ['Nova Descrição', 1]
-            );
-            expect(success).toBe(true);
-        });
-
-        it('findAll deve retornar lista completa convertida em camelCase', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
-
-            const result = await teamModel.findAll();
-
-            expect(result.length).toBe(2);
-            expect(result[0]).toHaveProperty('name');
-            expect(result[0]).not.toHaveProperty('nome');
+        test('retorna equipe com lista de membros vazia caso não haja integrantes cadastrados', async () => {
+            db.query.mockResolvedValueOnce([mocks.validTeamWithoutMembersRaw]);
+            const result = await model.findWithMembers(2);
+            expect(result).toEqual(mocks.validTeamWithoutMembersResult);
         });
     });
 });
