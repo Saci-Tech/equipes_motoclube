@@ -1,129 +1,71 @@
-// =========================================================================
-// TESTE UNITÁRIO: EventModel.test.js
-// =========================================================================
-
+const EventModel = require('../../src/models/EventModel');
 const db = require('../../src/config/database');
-const eventModel = require('../../src/models/EventModel');
-const { dbRowMock, dbRowListMock, apiPayloadMock } = require('../mocks/Event.mock');
+const mocks = require('../mocks/eventModel.mock');
 
-jest.mock('../../src/config/database', () => {
-    const mockQuery = jest.fn();
-    return {
-        promise: () => ({
-            query: mockQuery
-        }),
-        _mockQuery: mockQuery
-    };
-});
+jest.mock('../../src/config/database');
 
-describe('EventModel (Modelo de Eventos)', () => {
-    let mockQuery;
+describe('EventModel Unit Tests - 100% Coverage', () => {
+    let model;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockQuery = db._mockQuery;
+        model = new EventModel();
     });
 
-    describe('Serialização e Deserialização', () => {
-        it('deve converter linha do banco (snake_case) para camelCase', () => {
-            const result = eventModel.deserialize(dbRowMock);
-            expect(result).toEqual({
-                id: 1,
-                name: 'Treino Tático',
-                type: 'TREINO',
-                eventDate: '2026-10-15T14:00:00.000Z',
-                location: 'Base Alfa',
-                status: 'AGENDADO',
-                description: 'Treino tático mensal'
-            });
-        });
-
-        it('deve retornar null se passar valor nulo/undefined no deserialize', () => {
-            expect(eventModel.deserialize(null)).toBeNull();
-            expect(eventModel.deserialize(undefined)).toBeNull();
-        });
-
-        it('deve converter payload da API (camelCase) para colunas do banco (snake_case)', () => {
-            const result = eventModel.serialize(apiPayloadMock);
-            expect(result).toEqual({
-                nome: 'Treino Tático',
-                tipo: 'TREINO',
-                data_evento: '2026-10-15T14:00:00.000Z',
-                local: 'Base Alfa',
-                status: 'AGENDADO',
-                descricao: 'Treino tático mensal'
-            });
-        });
-
-        it('deve serializar apenas campos definidos no payload (parcial)', () => {
-            const result = eventModel.serialize({ name: 'Novo Nome' });
-            expect(result).toEqual({ nome: 'Novo Nome' });
-        });
-
-        it('deve retornar objeto vazio ao serializar payload nulo/undefined', () => {
-            expect(eventModel.serialize(null)).toEqual({});
-            expect(eventModel.serialize(undefined)).toEqual({});
-        });
+    test('constructor inicializa corretamente o nome da tabela e chave primária', () => {
+        expect(model.tableName).toBe('eventos');
+        expect(model.primaryKey).toBe('id');
     });
 
-    describe('Consultas específicas (findByType, findByStatus, findByDateRange)', () => {
-        it('findByType deve retornar lista de eventos filtrados por tipo', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
+    describe('findByName', () => {
+        test('retorna null se o nome não for fornecido', async () => {
+            const result = await model.findByName(null);
+            expect(result).toBeNull();
+            expect(db.query).not.toHaveBeenCalled();
+        });
 
-            const result = await eventModel.findByType('TREINO');
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM eventos WHERE tipo = ?',
-                ['TREINO']
+        test('retorna o evento se o nome for encontrado', async () => {
+            db.query.mockResolvedValueOnce([[mocks.validEvent]]);
+            const result = await model.findByName('Reunião Geral Semestral');
+            
+            expect(result).toEqual(mocks.validEvent);
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('SELECT * FROM'), 
+                ['Reunião Geral Semestral']
             );
-            expect(Array.isArray(result)).toBe(true);
-            expect(result.length).toBe(2);
-            expect(result[0].type).toBe('TREINO');
         });
 
-        it('findByStatus deve retornar lista de eventos filtrados por status', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
-
-            const result = await eventModel.findByStatus('AGENDADO');
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM eventos WHERE status = ?',
-                ['AGENDADO']
-            );
-            expect(result.length).toBe(2);
-            expect(result[0].status).toBe('AGENDADO');
-        });
-
-        it('findByDateRange deve retornar lista de eventos dentro do intervalo', async () => {
-            mockQuery.mockResolvedValueOnce([dbRowListMock]);
-
-            const result = await eventModel.findByDateRange('2026-10-01', '2026-10-31');
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'SELECT * FROM eventos WHERE data_evento BETWEEN ? AND ?',
-                ['2026-10-01', '2026-10-31']
-            );
-            expect(Array.isArray(result)).toBe(true);
-            expect(result.length).toBe(2);
-            expect(result[0].name).toBe('Treino Tático');
+        test('retorna null se o evento não for encontrado', async () => {
+            db.query.mockResolvedValueOnce([[]]);
+            const result = await model.findByName('Inexistente');
+            
+            expect(result).toBeNull();
         });
     });
 
-    it('deve retornar objeto vazio ao tentar serializar null ou undefined', () => {
-        expect(eventModel.serialize(null)).toEqual({});
-        expect(eventModel.serialize(undefined)).toEqual({});
-    });
-
-    it('deve serializar um payload parcial sem a propriedade name', () => {
-        const result = eventModel.serialize({
-            type: 'TREINO',
-            location: 'Base Alfa'
+    describe('findWithAttendances', () => {
+        test('retorna null se o id do evento não for informado', async () => {
+            const result = await model.findWithAttendances(null);
+            expect(result).toBeNull();
+            expect(db.query).not.toHaveBeenCalled();
         });
 
-        expect(result).toEqual({
-            tipo: 'TREINO',
-            local: 'Base Alfa'
+        test('retorna null se a consulta retornar vazia (evento não existe)', async () => {
+            db.query.mockResolvedValueOnce([[]]);
+            const result = await model.findWithAttendances(99);
+            expect(result).toBeNull();
         });
-        expect(result).not.toHaveProperty('nome');
+
+        test('retorna evento com a lista de presenças populada', async () => {
+            db.query.mockResolvedValueOnce([mocks.validEventWithAttendancesRaw]);
+            const result = await model.findWithAttendances(1);
+            expect(result).toEqual(mocks.validEventWithAttendancesResult);
+        });
+
+        test('retorna evento com lista de presenças vazia caso ainda não haja registros', async () => {
+            db.query.mockResolvedValueOnce([mocks.validEventWithoutAttendancesRaw]);
+            const result = await model.findWithAttendances(2);
+            expect(result).toEqual(mocks.validEventWithoutAttendancesResult);
+        });
     });
 });

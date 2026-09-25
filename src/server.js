@@ -1,11 +1,20 @@
 const express = require('express');
+const helmet = require('helmet');
 const expressOasGenerator = require('express-oas-generator');
 const path = require('path');
 const routes = require('./routes');
+const authMiddleware = require('./middlewares/authMiddleware');
+const rateLimiter = require('./middlewares/rateLimiter');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
+
+// Proteção de cabeçalhos HTTP via Helmet
+app.use(helmet());
+
+// Aplicação de Rate Limiting global
+app.use(rateLimiter);
 
 /* istanbul ignore next */
 if (process.env.NODE_ENV !== 'test') {
@@ -22,10 +31,9 @@ if (process.env.NODE_ENV !== 'test') {
 
 app.use(express.json());
 
-// Agregador central de rotas (/api/...)
-app.use('/api', routes);
+// Aplica o middleware de autenticação em todas as rotas com prefixo /api
+app.use('/api', authMiddleware, routes);
 
-// Inicia o servidor HTTP apenas se NÃO estiver em ambiente de teste
 /* istanbul ignore next */
 if (process.env.NODE_ENV !== 'test') {
     const PORT = process.env.PORT || 3000;
@@ -33,13 +41,6 @@ if (process.env.NODE_ENV !== 'test') {
         console.clear();
         console.log(`=============================================================`);
         console.log(`Servidor rodando na porta ${PORT}`);
-        console.log(`Equipes: http://localhost:${PORT}/api/teams`);
-        console.log(`Membros: http://localhost:${PORT}/api/members`);
-        console.log(`Equipamentos: http://localhost:${PORT}/api/equipments`);
-        console.log(`Eventos: http://localhost:${PORT}/api/events`);
-        console.log(`Presenças: http://localhost:${PORT}/api/presences`);
-        console.log(`=============================================================`);
-        console.log(`Docs: http://localhost:${PORT}/api-docs`);
         console.log(`=============================================================`);
     });
 }

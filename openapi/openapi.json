@@ -1,20 +1,18 @@
 {
   "swagger": "2.0",
   "paths": {
-    "/api/equipes/ativas": {
+    "/api/equipments": {
       "get": {
-        "summary": "/api/equipes/ativas",
+        "summary": "/api/equipments",
         "consumes": [
           "application/json"
         ],
         "parameters": [],
         "responses": {},
         "tags": []
-      }
-    },
-    "/api/equipes": {
+      },
       "post": {
-        "summary": "/api/equipes",
+        "summary": "/api/equipments",
         "consumes": [
           "application/json"
         ],
@@ -23,9 +21,60 @@
         "tags": []
       }
     },
-    "/api/integrantes/perfil/{id}": {
+    "/api/equipments/serial/{serialNumber}": {
       "get": {
-        "summary": "/api/integrantes/perfil/{id}",
+        "summary": "/api/equipments/serial/{serialNumber}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "serialNumber",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/equipments/category/{category}": {
+      "get": {
+        "summary": "/api/equipments/category/{category}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/equipments/status/{status}": {
+      "get": {
+        "summary": "/api/equipments/status/{status}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/equipments/{id}": {
+      "get": {
+        "summary": "/api/equipments/{id}",
         "consumes": [
           "application/json"
         ],
@@ -38,22 +87,24 @@
         ],
         "responses": {},
         "tags": []
-      }
-    },
-    "/api/integrantes": {
-      "post": {
-        "summary": "/api/integrantes",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/api/integrantes/{id}": {
+      },
       "put": {
-        "summary": "/api/integrantes/{id}",
+        "summary": "/api/equipments/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "delete": {
+        "summary": "/api/equipments/{id}",
         "consumes": [
           "application/json"
         ],
@@ -68,69 +119,9 @@
         "tags": []
       }
     },
-    "/api/equipamentos/categorias": {
+    "/api/presences": {
       "get": {
-        "summary": "/api/equipamentos/categorias",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      },
-      "post": {
-        "summary": "/api/equipamentos/categorias",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/api/equipamentos": {
-      "get": {
-        "summary": "/api/equipamentos",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      },
-      "post": {
-        "summary": "/api/equipamentos",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/api/eventos": {
-      "get": {
-        "summary": "/api/eventos",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      },
-      "post": {
-        "summary": "/api/eventos",
-        "consumes": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/api/presencas": {
-      "get": {
-        "summary": "/api/presencas",
+        "summary": "/api/presences",
         "consumes": [
           "application/json"
         ],
@@ -141,15 +132,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "sucesso": {
+                "success": {
                   "type": "boolean",
                   "example": true
                 },
-                "total": {
-                  "type": "number",
-                  "example": 50
-                },
-                "dados": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -157,54 +144,24 @@
                       "id": {
                         "type": "number"
                       },
-                      "id_evento": {
+                      "memberId": {
                         "type": "number"
                       },
-                      "nome_evento": {
-                        "type": "string"
-                      },
-                      "id_integrante": {
+                      "eventId": {
                         "type": "number"
-                      },
-                      "nome_colete": {
-                        "type": "string"
-                      },
-                      "presente": {
-                        "type": "number"
-                      },
-                      "justificativa_falta": {
-                        "type": "null"
-                      },
-                      "justificativa_aceita": {
-                        "type": "number"
-                      },
-                      "data_criacao": {
-                        "type": "string"
                       }
                     },
                     "required": [
                       "id",
-                      "id_evento",
-                      "nome_evento",
-                      "id_integrante",
-                      "nome_colete",
-                      "presente",
-                      "justificativa_falta",
-                      "justificativa_aceita",
-                      "data_criacao"
+                      "memberId",
+                      "eventId"
                     ]
                   },
                   "example": [
                     {
-                      "id": 156,
-                      "id_evento": 11,
-                      "nome_evento": "CONFRATERNIZAÇÃO CMD XIV",
-                      "id_integrante": 22,
-                      "nome_colete": "CARVALHO",
-                      "presente": 1,
-                      "justificativa_falta": null,
-                      "justificativa_aceita": 0,
-                      "data_criacao": "31/08/2026 22:46:09"
+                      "id": 2,
+                      "memberId": 1,
+                      "eventId": 3
                     }
                   ]
                 }
@@ -216,11 +173,84 @@
         "produces": [
           "application/json"
         ]
+      },
+      "post": {
+        "summary": "/api/presences",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
       }
     },
-    "/api/presencas/eventos/{id}/gerar-qr": {
-      "post": {
-        "summary": "/api/presencas/eventos/{id}/gerar-qr",
+    "/api/presences/event/{eventId}": {
+      "get": {
+        "summary": "/api/presences/event/{eventId}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/presences/member/{memberId}": {
+      "get": {
+        "summary": "/api/presences/member/{memberId}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/presences/{id}": {
+      "get": {
+        "summary": "/api/presences/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "put": {
+        "summary": "/api/presences/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "delete": {
+        "summary": "/api/presences/{id}",
         "consumes": [
           "application/json"
         ],
@@ -235,9 +265,18 @@
         "tags": []
       }
     },
-    "/api/presencas/validar": {
+    "/api/members": {
+      "get": {
+        "summary": "/api/members",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
       "post": {
-        "summary": "/api/presencas/validar",
+        "summary": "/api/members",
         "consumes": [
           "application/json"
         ],
@@ -246,9 +285,173 @@
         "tags": []
       }
     },
-    "/api/presencas/eventos/{id}": {
+    "/api/members/{id}": {
       "get": {
-        "summary": "/api/presencas/eventos/{id}",
+        "summary": "/api/members/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "put": {
+        "summary": "/api/members/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "delete": {
+        "summary": "/api/members/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/teams": {
+      "get": {
+        "summary": "/api/teams",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/teams",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/teams/{id}": {
+      "get": {
+        "summary": "/api/teams/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "put": {
+        "summary": "/api/teams/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "delete": {
+        "summary": "/api/teams/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/events": {
+      "get": {
+        "summary": "/api/events",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/events",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/events/{id}": {
+      "get": {
+        "summary": "/api/events/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "put": {
+        "summary": "/api/events/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      },
+      "delete": {
+        "summary": "/api/events/{id}",
         "consumes": [
           "application/json"
         ],

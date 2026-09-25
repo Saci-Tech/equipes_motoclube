@@ -1,162 +1,202 @@
-const db = require('../../src/config/database');
 const BaseModel = require('../../src/models/BaseModel');
+const db = require('../../src/config/database');
+const mocks = require('../mocks/baseModel.mock');
 
-jest.mock('../../src/config/database', () => {
-    const mockQuery = jest.fn();
-    return {
-        promise: () => ({ query: mockQuery }),
-        _mockQuery: mockQuery
-    };
-});
+jest.mock('../../src/config/database');
 
-describe('BaseModel (Classe Base)', () => {
+describe('BaseModel Unit Tests - 100% Coverage', () => {
     let model;
-    let mockQuery;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockQuery = db._mockQuery;
-        model = new BaseModel('tabela_teste');
+        model = new BaseModel('tabela_teste', 'id_teste');
     });
 
-    describe('Construtor e Inicialização', () => {
-        it('deve definir a chave primária padrão como "id"', () => {
-            expect(model.tableName).toBe('tabela_teste');
-            expect(model.primaryKey).toBe('id');
-        });
-
-        it('deve aceitar uma chave primária personalizada', () => {
-            const customModel = new BaseModel('tabela_teste', 'codigo');
-            expect(customModel.primaryKey).toBe('codigo');
-        });
+    test('constructor atribui id padrão para primaryKey se for omitido', () => {
+        const defaultModel = new BaseModel('tabela_padrao');
+        expect(defaultModel.tableName).toBe('tabela_padrao');
+        expect(defaultModel.primaryKey).toBe('id');
     });
 
-    describe('Serialização e Deserialização', () => {
-        it('deve retornar objeto vazio ao serializar payload nulo/undefined', () => {
-            expect(model.serialize(null)).toEqual({});
-            expect(model.serialize(undefined)).toEqual({});
-        });
+    test('serialize e deserialize tratam null, objetos e listas', () => {
+        expect(model.serialize(null)).toBeNull();
+        expect(model.deserialize(null)).toBeNull();
 
-        it('deve retornar o próprio objeto ao serializar payload válido', () => {
-            const payload = { nome: 'Teste' };
-            expect(model.serialize(payload)).toEqual(payload);
-        });
+        expect(model.serialize(mocks.validRecord)).toEqual(mocks.validRecord);
+        expect(model.deserialize(mocks.validRecord)).toEqual(mocks.validRecord);
 
-        it('deve retornar null ao deserializar linha nula/undefined', () => {
-            expect(model.deserialize(null)).toBeNull();
-            expect(model.deserialize(undefined)).toBeNull();
-        });
-
-        it('deve retornar o próprio objeto ao deserializar linha válida', () => {
-            const row = { id: 1, nome: 'Teste' };
-            expect(model.deserialize(row)).toEqual(row);
-        });
-
-        it('deve tratar deserializeList corretamente', () => {
-            expect(model.deserializeList(null)).toEqual([]);
-            expect(model.deserializeList('invalido')).toEqual([]);
-            expect(model.deserializeList([{ id: 1 }, { id: 2 }])).toEqual([{ id: 1 }, { id: 2 }]);
-        });
+        expect(model.serialize(mocks.validRecordList)).toEqual(mocks.validRecordList);
+        expect(model.deserialize(mocks.validRecordList)).toEqual(mocks.validRecordList);
     });
 
-    describe('Métodos de Consulta (findAll, findById)', () => {
-        it('findAll deve retornar lista de registros', async () => {
-            const fakeRows = [{ id: 1, nome: 'A' }, { id: 2, nome: 'B' }];
-            mockQuery.mockResolvedValueOnce([fakeRows]);
+    // -------------------------------------------------------------------------
+    // NOVO TESTE: getRecords
+    // -------------------------------------------------------------------------
+    test('getRecords retorna todos os registros ou null se a tabela estiver vazia', async () => {
+        // Cenário 1: Tabela com registros
+        db.query.mockResolvedValueOnce([mocks.validRecordList]);
+        const records = await model.getRecords();
+        
+        expect(records).toEqual(mocks.validRecordList);
+        expect(db.query).toHaveBeenCalledWith('SELECT * FROM tabela_teste');
 
-            const result = await model.findAll();
-
-            expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM tabela_teste');
-            expect(result).toEqual(fakeRows);
-        });
-
-        it('findById deve retornar o registro quando encontrado', async () => {
-            const fakeRow = { id: 10, nome: 'Item Encontrado' };
-            mockQuery.mockResolvedValueOnce([[fakeRow]]);
-
-            const result = await model.findById(10);
-
-            expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM tabela_teste WHERE id = ?', [10]);
-            expect(result).toEqual(fakeRow);
-        });
-
-        it('findById deve retornar null quando o registro não existir', async () => {
-            mockQuery.mockResolvedValueOnce([[]]);
-
-            const result = await model.findById(999);
-
-            expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM tabela_teste WHERE id = ?', [999]);
-            expect(result).toBeNull();
-        });
+        // Cenário 2: Tabela sem registros
+        db.query.mockResolvedValueOnce([[]]);
+        const emptyRecords = await model.getRecords();
+        
+        expect(emptyRecords).toBeNull();
     });
 
-    describe('Método create', () => {
-        it('deve inserir um novo registro e retornar o insertId', async () => {
-            mockQuery.mockResolvedValueOnce([{ insertId: 42 }]);
+    test('getRecordById retorna registro existente ou null', async () => {
+        db.query.mockResolvedValueOnce([[mocks.validRecord]]);
+        const record = await model.getRecordById(1);
+        expect(record).toEqual(mocks.validRecord);
 
-            const insertId = await model.create({ nome: 'Novo Item', valor: 100 });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'INSERT INTO tabela_teste (nome, valor) VALUES (?, ?)',
-                ['Novo Item', 100]
-            );
-            expect(insertId).toBe(42);
-        });
-
-        it('deve lançar erro se o payload serializado for vazio', async () => {
-            jest.spyOn(model, 'serialize').mockReturnValue({});
-
-            await expect(model.create({})).rejects.toThrow('Nenhum dado válido fornecido para inserção.');
-        });
+        db.query.mockResolvedValueOnce([[]]);
+        const nullRecord = await model.getRecordById(99);
+        expect(nullRecord).toBeNull();
     });
 
-    describe('Método update', () => {
-        it('deve atualizar o registro e retornar true se afetar linhas', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]);
-
-            const success = await model.update(1, { nome: 'Nome Atualizado' });
-
-            expect(mockQuery).toHaveBeenCalledWith(
-                'UPDATE tabela_teste SET nome = ? WHERE id = ?',
-                ['Nome Atualizado', 1]
-            );
-            expect(success).toBe(true);
-        });
-
-        it('deve retornar false se nenhuma linha for afetada na atualização', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 0 }]);
-
-            const success = await model.update(999, { nome: 'Inexistente' });
-
-            expect(success).toBe(false);
-        });
-
-        it('deve retornar false imediatamente se o payload serializado for vazio', async () => {
-            jest.spyOn(model, 'serialize').mockReturnValue({});
-
-            const success = await model.update(1, {});
-
-            expect(mockQuery).not.toHaveBeenCalled();
-            expect(success).toBe(false);
-        });
+    test('getRecordById lança exceção se primaryKey for null', async () => {
+        const noPkModel = new BaseModel('tabela_sem_pk', null);
+        await expect(noPkModel.getRecordById(1)).rejects.toThrow(
+            'Chave primária não definida para esta tabela.'
+        );
     });
 
-    describe('Método delete', () => {
-        it('deve deletar o registro e retornar true se afetar linhas', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]);
+    test('findAll executa consultas sem filtros e com filtros', async () => {
+        db.query.mockResolvedValueOnce([[mocks.validRecord]]);
+        const all = await model.findAll();
+        expect(all).toEqual([mocks.validRecord]);
+        expect(db.query).toHaveBeenCalledWith('SELECT * FROM tabela_teste', []);
 
-            const success = await model.delete(5);
+        db.query.mockResolvedValueOnce([[mocks.validRecord]]);
+        const filtered = await model.findAll({ nome: 'Registro Teste' });
+        expect(filtered).toEqual([mocks.validRecord]);
+        expect(db.query).toHaveBeenCalledWith(
+            'SELECT * FROM tabela_teste WHERE nome = ?',
+            ['Registro Teste']
+        );
+    });
 
-            expect(mockQuery).toHaveBeenCalledWith('DELETE FROM tabela_teste WHERE id = ?', [5]);
-            expect(success).toBe(true);
-        });
+    test('create realiza inserções individuais, com ID explícito e em lote', async () => {
+        db.query
+            .mockResolvedValueOnce([{ insertId: 10 }])
+            .mockResolvedValueOnce([[mocks.createSingleOutput]]);
 
-        it('deve retornar false se tentar deletar id inexistente', async () => {
-            mockQuery.mockResolvedValueOnce([{ affectedRows: 0 }]);
+        const created = await model.create(mocks.createSingleInput);
+        expect(created).toEqual(mocks.createSingleOutput);
 
-            const success = await model.delete(999);
+        db.query
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ id_teste: 11, nome: 'Com PK Preenchida' }]]);
 
-            expect(success).toBe(false);
-        });
+        const createdWithPk = await model.create(mocks.createWithPkInput);
+        expect(createdWithPk).toEqual({ id_teste: 11, nome: 'Com PK Preenchida' });
+
+        db.query
+            .mockResolvedValueOnce([{ insertId: 1 }])
+            .mockResolvedValueOnce([[mocks.validRecordList[0]]])
+            .mockResolvedValueOnce([{ insertId: 2 }])
+            .mockResolvedValueOnce([[mocks.validRecordList[1]]]);
+
+        const createdList = await model.create(mocks.createListInput);
+        expect(createdList).toEqual(mocks.validRecordList);
+    });
+
+    test('create insere item em modelo sem chave primária', async () => {
+        const noPkModel = new BaseModel('tabela_sem_pk', null);
+        db.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+        const result = await noPkModel.create({ campo: 'Sem PK' });
+        expect(result).toEqual({ campo: 'Sem PK' });
+    });
+
+    test('create valida e rejeita payloads nulos e objetos sem chaves', async () => {
+        await expect(model.create(null)).rejects.toThrow('Payload é obrigatório para criação.');
+        await expect(model.create({})).rejects.toThrow('Nenhum dado válido fornecido para inserção.');
+    });
+
+    test('update atualiza por id, por chave primária e aceita lote/arrays', async () => {
+        db.query
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ id_teste: 10, nome: 'Atualizado' }]]);
+
+        const updatedById = await model.update(mocks.updateSingleInput);
+        expect(updatedById).toEqual({ id_teste: 10, nome: 'Atualizado' });
+
+        db.query
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ id_teste: 20, nome: 'Atualizado Por PK' }]]);
+
+        const updatedByPk = await model.update(mocks.updateByPkInput);
+        expect(updatedByPk).toEqual({ id_teste: 20, nome: 'Atualizado Por PK' });
+
+        db.query
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ id_teste: 30, nome: 'Atualizado 1' }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ id_teste: 31, nome: 'Atualizado 2' }]]);
+
+        const updatedList = await model.update(mocks.updateListInput);
+        expect(updatedList).toEqual([
+            { id_teste: 30, nome: 'Atualizado 1' },
+            { id_teste: 31, nome: 'Atualizado 2' }
+        ]);
+    });
+
+    test('update suporta payloads sem campos adicionais e modelos sem PK', async () => {
+        db.query.mockResolvedValueOnce([[{ id_teste: 10, nome: 'Apenas ID' }]]);
+        const noExtraFields = await model.update({ id: 10 });
+        expect(noExtraFields).toEqual({ id_teste: 10, nome: 'Apenas ID' });
+
+        const noPkModel = new BaseModel('tabela_sem_pk', null);
+        const result = await noPkModel.update({ campo: 'Sem PK' });
+        expect(result).toEqual({ campo: 'Sem PK' });
+    });
+
+    test('update lança erro se o payload for nulo ou se faltar o identificador', async () => {
+        await expect(model.update(null)).rejects.toThrow('Payload é obrigatório para atualização.');
+        await expect(model.update({ nome: 'Sem ID' })).rejects.toThrow(
+            "Identificador 'id_teste' é obrigatório no payload."
+        );
+    });
+
+    test('delete exclui por id escalar, objeto id ou chave primária customizada', async () => {
+        db.query
+            .mockResolvedValueOnce([[{ id_teste: 5, nome: 'Remover' }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+        const deletedScalar = await model.delete(mocks.deleteScalarId);
+        expect(deletedScalar).toEqual({ id_teste: 5, nome: 'Remover' });
+
+        db.query
+            .mockResolvedValueOnce([[{ id_teste: 6, nome: 'Remover 2' }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+        const deletedObj = await model.delete([mocks.deleteObjectInput]);
+        expect(deletedObj).toEqual([{ id_teste: 6, nome: 'Remover 2' }]);
+
+        db.query
+            .mockResolvedValueOnce([[{ id_teste: 7, nome: 'Remover 3' }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+        const deletedPk = await model.delete(mocks.deletePkObjectInput);
+        expect(deletedPk).toEqual({ id_teste: 7, nome: 'Remover 3' });
+    });
+
+    test('delete trata registros inexistentes e tabelas sem chave primária', async () => {
+        db.query.mockResolvedValueOnce([[]]);
+        const deletedNotFound = await model.delete(99);
+        expect(deletedNotFound).toEqual({ id: 99 });
+
+        const noPkModel = new BaseModel('tabela_sem_pk', null);
+        const deletedNoPk = await noPkModel.delete({ relacao_id: 12 });
+        expect(deletedNoPk).toEqual({ relacao_id: 12 });
+    });
+
+    test('delete lança erros em payloads nulos ou quando o id não for informado', async () => {
+        await expect(model.delete(null)).rejects.toThrow('Payload é obrigatório para remoção.');
+        await expect(model.delete({})).rejects.toThrow('Identificador da exclusão não fornecido.');
     });
 });

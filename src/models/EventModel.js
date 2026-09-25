@@ -3,57 +3,74 @@ const db = require('../config/database');
 
 class EventModel extends BaseModel {
     constructor() {
-        super('eventos');
+        // Inicializa a BaseModel com a tabela de eventos
+        super('eventos', 'id');
     }
 
-    deserialize(row) {
-        if (!row) return null;
-        return {
-            id: row.id,
-            name: row.nome,
-            type: row.tipo,
-            eventDate: row.data_evento,
-            location: row.local,
-            status: row.status,
-            description: row.descricao
+    /**
+     * Busca um evento pelo nome/título
+     * @param {string} nome 
+     * @returns {Promise<Object|null>}
+     */
+    async findByName(nome) {
+        if (!nome) return null;
+
+        const [rows] = await db.query(
+            `SELECT * FROM ${this.tableName} WHERE nome = ?`,
+            [nome]
+        );
+
+        return rows.length > 0 ? rows[0] : null;
+    }
+
+    /**
+     * Busca um evento e lista todos os registros de presença atrelados a ele
+     * @param {number} eventId 
+     * @returns {Promise<Object|null>}
+     */
+    async findWithAttendances(eventId) {
+        if (!eventId) return null;
+
+        const query = `
+            SELECT 
+                e.id, e.nome, e.data_evento, e.ativo,
+                pe.id_integrante,
+                i.nome AS integrante_nome,
+                pe.presente,
+                pe.justificativa_falta,
+                pe.justificativa_aceita
+            FROM ${this.tableName} e
+            LEFT JOIN presenca_eventos pe ON e.id = pe.id_evento
+            LEFT JOIN integrantes i ON pe.id_integrante = i.id
+            WHERE e.id = ?
+        `;
+
+        const [rows] = await db.query(query, [eventId]);
+
+        if (!rows || rows.length === 0) return null;
+
+        const eventInfo = {
+            id: rows[0].id,
+            nome: rows[0].nome,
+            data_evento: rows[0].data_evento,
+            ativo: rows[0].ativo,
+            attendances: [] // Lista de presenças e faltas do evento
         };
-    }
 
-    serialize(payload) {
-        if (!payload) return {};
-        const mapped = {};
-        if (payload.name !== undefined) mapped.nome = payload.name;
-        if (payload.type !== undefined) mapped.tipo = payload.type;
-        if (payload.eventDate !== undefined) mapped.data_evento = payload.eventDate;
-        if (payload.location !== undefined) mapped.local = payload.location;
-        if (payload.status !== undefined) mapped.status = payload.status;
-        if (payload.description !== undefined) mapped.descricao = payload.description;
-        return mapped;
-    }
+        rows.forEach(row => {
+            if (row.id_integrante) {
+                eventInfo.attendances.push({
+                    member_id: row.id_integrante,
+                    member_name: row.integrante_nome,
+                    present: Boolean(row.presente),
+                    justification: row.justificativa_falta,
+                    justification_accepted: row.justificativa_aceita !== null ? Boolean(row.justificativa_aceita) : null
+                });
+            }
+        });
 
-    async findByType(type) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE tipo = ?`,
-            [type]
-        );
-        return this.deserializeList(rows);
-    }
-
-    async findByStatus(status) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE status = ?`,
-            [status]
-        );
-        return this.deserializeList(rows);
-    }
-
-    async findByDateRange(startDate, endDate) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE data_evento BETWEEN ? AND ?`,
-            [startDate, endDate]
-        );
-        return this.deserializeList(rows);
+        return eventInfo;
     }
 }
 
-module.exports = new EventModel();
+module.exports = EventModel;

@@ -3,70 +3,57 @@ const db = require('../config/database');
 
 class EquipmentModel extends BaseModel {
     constructor() {
-        super('equipamentos');
+        super('equipamentos', 'id');
     }
 
-    /**
-     * De/Para: Banco de Dados (snake_case/PT) -> Payload da API (camelCase/EN)
-     */
-    deserialize(row) {
-        if (!row) return null;
-        return {
-            id: row.id,
-            name: row.nome,
-            category: row.categoria,
-            serialNumber: row.numero_serie,
-            status: row.status,
-            notes: row.observacoes
+    async findByName(nome) {
+        if (!nome) return null;
+        const [rows] = await db.query(
+            `SELECT * FROM ${this.tableName} WHERE nome = ?`,
+            [nome]
+        );
+        return rows.length > 0 ? rows[0] : null;
+    }
+
+    async findWithMembers(equipmentId) {
+        if (!equipmentId) return null;
+        const query = `
+            SELECT 
+                e.id, e.nome, e.descricao, e.ativo,
+                ie.id_integrante,
+                i.nome AS integrante_nome,
+                ie.data_retirada,
+                ie.data_devolucao
+            FROM ${this.tableName} e
+            LEFT JOIN integrante_equipamento ie ON e.id = ie.id_equipamento
+            LEFT JOIN integrantes i ON ie.id_integrante = i.id
+            WHERE e.id = ?
+        `;
+        const [rows] = await db.query(query, [equipmentId]);
+
+        if (!rows || rows.length === 0) return null;
+
+        const equipmentInfo = {
+            id: rows[0].id,
+            nome: rows[0].nome,
+            descricao: rows[0].descricao,
+            ativo: rows[0].ativo,
+            assignments: [] 
         };
-    }
 
-    /**
-     * De/Para: Payload da API (camelCase/EN) -> Banco de Dados (snake_case/PT)
-     */
-    serialize(payload) {
-        if (!payload) return {};
-        const mapped = {};
-        if (payload.name !== undefined) mapped.nome = payload.name;
-        if (payload.category !== undefined) mapped.categoria = payload.category;
-        if (payload.serialNumber !== undefined) mapped.numero_serie = payload.serialNumber;
-        if (payload.status !== undefined) mapped.status = payload.status;
-        if (payload.notes !== undefined) mapped.observacoes = payload.notes;
-        return mapped;
-    }
+        rows.forEach(row => {
+            if (row.id_integrante) {
+                equipmentInfo.assignments.push({
+                    member_id: row.id_integrante,
+                    member_name: row.integrante_nome,
+                    checkout_date: row.data_retirada,
+                    return_date: row.data_devolucao
+                });
+            }
+        });
 
-    /**
-     * Busca equipamento pelo número de série único
-     */
-    async findBySerialNumber(serialNumber) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE numero_serie = ?`,
-            [serialNumber]
-        );
-        return rows.length > 0 ? this.deserialize(rows[0]) : null;
-    }
-
-    /**
-     * Busca equipamentos por categoria
-     */
-    async findByCategory(category) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE categoria = ?`,
-            [category]
-        );
-        return this.deserializeList(rows);
-    }
-
-    /**
-     * Busca equipamentos por status (ex: 'DISPONIVEL', 'EM_USO', 'MANUTENCAO')
-     */
-    async findByStatus(status) {
-        const [rows] = await db.promise().query(
-            `SELECT * FROM ${this.tableName} WHERE status = ?`,
-            [status]
-        );
-        return this.deserializeList(rows);
+        return equipmentInfo;
     }
 }
 
-module.exports = new EquipmentModel();
+module.exports = EquipmentModel;

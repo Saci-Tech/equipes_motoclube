@@ -38,6 +38,7 @@ describe('EquipmentModel Unit Tests - 100% Coverage', () => {
         test('retorna null se o equipamento não for encontrado', async () => {
             db.query.mockResolvedValueOnce([[]]);
             const result = await model.findByName('Inexistente');
+            
             expect(result).toBeNull();
         });
     });
@@ -49,7 +50,7 @@ describe('EquipmentModel Unit Tests - 100% Coverage', () => {
             expect(db.query).not.toHaveBeenCalled();
         });
 
-        test('retorna null se a consulta retornar vazia', async () => {
+        test('retorna null se a consulta retornar vazia (equipamento não existe)', async () => {
             db.query.mockResolvedValueOnce([[]]);
             const result = await model.findWithMembers(99);
             expect(result).toBeNull();
@@ -61,7 +62,7 @@ describe('EquipmentModel Unit Tests - 100% Coverage', () => {
             expect(result).toEqual(mocks.validEquipmentWithMembersResult);
         });
 
-        test('retorna equipamento com lista de atribuições vazia', async () => {
+        test('retorna equipamento com lista de atribuições vazia caso não tenha histórico', async () => {
             db.query.mockResolvedValueOnce([mocks.validEquipmentWithoutMembersRaw]);
             const result = await model.findWithMembers(2);
             expect(result).toEqual(mocks.validEquipmentWithoutMembersResult);

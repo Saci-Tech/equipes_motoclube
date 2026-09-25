@@ -3,7 +3,7 @@ const db = require('../config/database');
 
 class TeamModel extends BaseModel {
     constructor() {
-        super('equipes');
+        super('equipes_especiais');
     }
 
     /**

@@ -3,102 +3,151 @@ const db = require('../config/database');
 class BaseModel {
     /**
      * @param {string} tableName - Nome exato da tabela no MySQL
-     * @param {string} primaryKey - Chave primária da tabela (default: 'id')
+     * @param {string|null} [primaryKey='id'] - Chave primária da tabela
      */
     constructor(tableName, primaryKey = 'id') {
         this.tableName = tableName;
         this.primaryKey = primaryKey;
     }
 
-    /**
-     * Converte o payload da API (camelCase / EN) para a estrutura da tabela (snake_case / PT).
-     * Sobrescreva este método na classe filha para fazer o de/para específico.
-     */
     serialize(payload) {
-        if (!payload) return {};
+        if (!payload) return null;
+        if (Array.isArray(payload)) {
+            return payload.map((item) => ({ ...item }));
+        }
         return { ...payload };
     }
 
-    /**
-     * Converte a linha vinda do banco (snake_case / PT) para o formato da API (camelCase / EN).
-     * Sobrescreva este método na classe filha para fazer o de/para específico.
-     */
     deserialize(row) {
         if (!row) return null;
+        if (Array.isArray(row)) {
+            return row.map((item) => ({ ...item }));
+        }
         return { ...row };
     }
 
-    /**
-     * Converte um array de registros do banco
-     */
-    deserializeList(rows) {
-        if (!Array.isArray(rows)) return [];
-        return rows.map((row) => this.deserialize(row));
+    async getRecords() {
+        const [rows] = await db.query(
+            `SELECT * FROM ${this.tableName}`
+        );
+        return rows.length > 0 ? this.deserialize(rows) : null;
     }
 
-    /**
-     * Retorna todos os registros da tabela
-     */
-    async findAll() {
-        const [rows] = await db.promise().query(`SELECT * FROM ${this.tableName}`);
-        return this.deserializeList(rows);
-    }
-
-    /**
-     * Busca um registro por ID
-     */
-    async findById(id) {
-        const [rows] = await db.promise().query(
+    async getRecordById(id) {
+        if (!this.primaryKey) {
+            throw new Error('Chave primária não definida para esta tabela.');
+        }
+        const [rows] = await db.query(
             `SELECT * FROM ${this.tableName} WHERE ${this.primaryKey} = ?`,
             [id]
         );
         return rows.length > 0 ? this.deserialize(rows[0]) : null;
     }
 
-    /**
-     * Insere um novo registro a partir de um objeto serializado
-     */
-    async create(payload) {
-        const data = this.serialize(payload);
-        const keys = Object.keys(data);
-        const values = Object.values(data);
+    async findAll(filters = {}) {
+        const keys = Object.keys(filters);
+        let sql = `SELECT * FROM ${this.tableName}`;
+        const values = [];
 
-        if (keys.length === 0) {
-            throw new Error('Nenhum dado válido fornecido para inserção.');
+        if (keys.length > 0) {
+            const conditions = keys.map((key) => `${key} = ?`).join(' AND ');
+            sql += ` WHERE ${conditions}`;
+            values.push(...Object.values(filters));
         }
 
-        const columns = keys.join(', ');
-        const placeholders = keys.map(() => '?').join(', ');
-        const sql = `INSERT INTO ${this.tableName} (${columns}) VALUES (${placeholders})`;
-
-        const [result] = await db.promise().query(sql, values);
-        return result.insertId;
+        const [rows] = await db.query(sql, values);
+        return this.deserialize(rows);
     }
 
-    /**
-     * Atualiza um registro existente
-     */
-    async update(id, payload) {
-        const data = this.serialize(payload);
-        const keys = Object.keys(data);
-        const values = Object.values(data);
+    async create(payload) {
+        if (!payload) throw new Error('Payload é obrigatório para criação.');
+        const isArray = Array.isArray(payload);
+        const items = isArray ? payload : [payload];
+        const createdRecords = [];
 
-        if (keys.length === 0) return false;
+        for (const item of items) {
+            const serialized = this.serialize(item);
+            const keys = Object.keys(serialized);
+            const values = Object.values(serialized);
 
-        const setClause = keys.map((key) => `${key} = ?`).join(', ');
-        const sql = `UPDATE ${this.tableName} SET ${setClause} WHERE ${this.primaryKey} = ?`;
+            if (keys.length === 0) {
+                throw new Error('Nenhum dado válido fornecido para inserção.');
+            }
 
-        const [result] = await db.promise().query(sql, [...values, id]);
-        return result.affectedRows > 0;
+            const columns = keys.join(', ');
+            const placeholders = keys.map(() => '?').join(', ');
+            const sql = `INSERT INTO ${this.tableName} (${columns}) VALUES (${placeholders})`;
+
+            const [result] = await db.query(sql, values);
+            const insertId = (this.primaryKey ? serialized[this.primaryKey] : null) || result?.insertId;
+
+            if (this.primaryKey && insertId) {
+                const created = await this.getRecordById(insertId);
+                createdRecords.push(created);
+            } else {
+                createdRecords.push(this.deserialize(serialized));
+            }
+        }
+
+        return isArray ? createdRecords : createdRecords[0];
     }
 
-    /**
-     * Remove um registro por ID
-     */
-    async delete(id) {
-        const sql = `DELETE FROM ${this.tableName} WHERE ${this.primaryKey} = ?`;
-        const [result] = await db.promise().query(sql, [id]);
-        return result.affectedRows > 0;
+    async update(payload) {
+        if (!payload) throw new Error('Payload é obrigatório para atualização.');
+        const isArray = Array.isArray(payload);
+        const items = isArray ? payload : [payload];
+        const updatedRecords = [];
+
+        for (const item of items) {
+            const serialized = this.serialize(item);
+            const recordId = item.id || (this.primaryKey ? serialized[this.primaryKey] : null);
+
+            if (this.primaryKey && !recordId) {
+                throw new Error(`Identificador '${this.primaryKey}' é obrigatório no payload.`);
+            }
+
+            if (this.primaryKey) {
+                delete serialized[this.primaryKey];
+                delete serialized.id;
+            }
+
+            const keys = Object.keys(serialized);
+            const values = Object.values(serialized);
+
+            if (this.primaryKey && keys.length > 0) {
+                const setClause = keys.map((key) => `${key} = ?`).join(', ');
+                const sql = `UPDATE ${this.tableName} SET ${setClause} WHERE ${this.primaryKey} = ?`;
+                await db.query(sql, [...values, recordId]);
+            }
+
+            const updated = this.primaryKey ? await this.getRecordById(recordId) : this.deserialize(item);
+            updatedRecords.push(updated);
+        }
+
+        return isArray ? updatedRecords : updatedRecords[0];
+    }
+
+    async delete(payload) {
+        if (!payload) throw new Error('Payload é obrigatório para remoção.');
+        const isArray = Array.isArray(payload);
+        const items = isArray ? payload : [payload];
+        const deletedRecords = [];
+
+        for (const item of items) {
+            const id = typeof item === 'object' ? item.id || (this.primaryKey ? item[this.primaryKey] : null) : item;
+            if (!id && this.primaryKey) {
+                throw new Error('Identificador da exclusão não fornecido.');
+            }
+
+            const record = this.primaryKey && id ? await this.getRecordById(id) : null;
+            if (this.primaryKey && id) {
+                const sql = `DELETE FROM ${this.tableName} WHERE ${this.primaryKey} = ?`;
+                await db.query(sql, [id]);
+            }
+            deletedRecords.push(record || (typeof item === 'object' ? item : { id }));
+        }
+
+        return isArray ? deletedRecords : deletedRecords[0];
     }
 }
 

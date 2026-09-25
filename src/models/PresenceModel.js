@@ -3,7 +3,7 @@ const db = require('../config/database');
 
 class PresenceModel extends BaseModel {
     constructor() {
-        super('presencas');
+        super('presenca_eventos');
     }
 
     /**
