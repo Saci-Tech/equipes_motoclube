@@ -96,7 +96,7 @@ The API communication format is standardized and follows these rules:
 
 * **Input Payload (Request):**
   * All data input (for creation and updates) is done exclusively via `req.body`.
-  * **Polymorphism:** The contract accepts both a single object and an array of objects for batch operations. The API processes both forms transparently.
+  * **Polimorphism:** The contract accepts both a single object and an array of objects for batch operations. The API processes both forms transparently.
     * *Single Example:* `{ "name": "Event 1" }`
     * *Batch Example:* `[{ "name": "Event 1" }, { "name": "Event 2" }]`
 
@@ -122,15 +122,13 @@ The API communication format is standardized and follows these rules:
 
 ---
 
-## 🔄 6. Refactoring Order and Progress
+## 🔄 6. Progress Tracking & Workflow (`TODO.md`)
 
-The project's entity development, refactoring, and structuring strictly follow **alphabetical order**:
+To maintain a clean and synchronized development process, all refactoring, active queues, and progress tracking are managed exclusively via the **`TODO.md`** file located at the root of the repository.
 
-1. `AccessProfileController` (and corresponding Model/Tests)
-2. `EquipmentController` (and corresponding Model/Tests)
-3. `EventController` (and corresponding Model/Tests)
-4. `MemberController` (Next in line)
-5. Other subsequent entities...
+* **Single Source of Truth for Workflow:** Always refer to the `TODO.md` for the current active target.
+* **Strict Order:** The `TODO.md` enforces the alphabetical execution of entities and the mandatory layer-by-layer progression (`Model` -> `Controller` -> `Router` -> `Server`).
+* **Checklist Discipline:** Developers must check off items in the `TODO.md` immediately upon completing a layer and its tests with 100% coverage before moving to the next task.
 
 ---
 
